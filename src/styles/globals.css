@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    @keyframes shimmer {
+        0% {
+            transform: translateX(-100%) rotate(-45deg);
+        }
+
+        50% {
+            transform: translateX(100%) rotate(-45deg);
+        }
+
+        100% {
+            transform: translateX(100%) rotate(-45deg);
+        }
+    }
+
+    .shimmer-effect {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shimmer-effect::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 150%;
+        height: 100%;
+        background: linear-gradient(90deg,
+                transparent,
+                rgba(0, 226, 202, 0.05),
+                rgba(0, 226, 202, 0.1),
+                rgba(0, 226, 202, 0.05),
+                transparent);
+        animation: shimmer 4s infinite;
+        pointer-events: none;
+    }
+
+    .card-glow {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .card-glow::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(0, 226, 202, 0.1) 0%,
+                transparent 50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .card-glow:hover::after {
+        opacity: 1;
+    }
+}

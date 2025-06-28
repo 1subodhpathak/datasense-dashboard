@@ -1,0 +1,11 @@
+.dashboard-tab-btn {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.dashboard-tab-btn:hover,
+.dashboard-tab-btn:focus,
+.dashboard-tab-btn:active {
+    background: transparent !important;
+    box-shadow: none !important;
+}
