@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import Start from "./pages/Start";
+// import Start from "./pages/Start";
 import Dashboard from "./pages/Dashboard";
 import Community from "./pages/Community";
 import Leaderboard from "./pages/Leaderboard";
@@ -20,6 +20,7 @@ import { useUser, RedirectToSignIn } from '@clerk/clerk-react';
 import { WebSocketProvider } from './util/WebsocketProvider'
 import { NotificationProvider } from "@/hooks/NotificationProvider";
 import axios from 'axios';
+import PracticeDashboard from "./pages/PracticeDashboard";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -74,22 +75,22 @@ const App = () => {
                 <BrowserRouter>
                   <Routes>
                     {/* Public route - accessible without login */}
-                    {  <Route path="/" element={<iframe src="/home.html" style={{ width: '100%', height: '100vh', border: 'none' }} title="External Page" />} /> }
+                    {/* {  <Route path="/" element={<iframe src="/home.html" style={{ width: '100%', height: '100vh', border: 'none' }} title="External Page" />} /> } */}
                     
                     {/* Protected routes - require authentication */}
                     <Route 
-                      path="/start" 
+                      path="/" 
                       element={
                         <ProtectedRoute>
-                          <Start />
+                          <Dashboard />
                         </ProtectedRoute>
                       } 
                     />
                     <Route 
-                      path="/dashboard" 
+                      path="/practice-dashboard" 
                       element={
                         <ProtectedRoute>
-                          <Dashboard />
+                          <PracticeDashboard />
                         </ProtectedRoute>
                       } 
                     />

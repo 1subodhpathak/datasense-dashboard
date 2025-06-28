@@ -10,7 +10,7 @@ const AppSidebar = () => {
     const currentPath = location.pathname;
     const menuItems = [
         { icon: Home, label: "Start", path: "/start" },
-        { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+        { icon: LayoutDashboard, label: "Dashboard", path: "/" },
         { icon: Database, label: "SQL Journey", path: "/sql-journey" },
         { icon: Users, label: "Community", path: "/community" },
         { icon: BarChart3, label: "Leaderboard", path: "/leaderboard" },
