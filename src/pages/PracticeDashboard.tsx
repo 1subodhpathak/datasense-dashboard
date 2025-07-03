@@ -38,7 +38,7 @@ export default function PracticeDashboard() {
         })
         .catch(err => {
           if (err.response?.status === 404) {
-            setShowProfileModal(false);
+            setShowProfileModal(true);
             setUserChecked(true);
           } else {
             setShowProfileModal(false);
@@ -132,25 +132,6 @@ export default function PracticeDashboard() {
 
     fetchData()
   }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
-
-  // Ensure mock data is set if API fails and state is still null after loading
-  useEffect(() => {
-    if (!loading) {
-      if (!userData) {
-        console.warn('userData was null after loading, setting mock data.');
-        setUserData(createMockUserData());
-      }
-      if (!streakData) {
-        console.warn('streakData was null after loading, setting mock data.');
-        setStreakData(createMockStreakData());
-      }
-    }
-  }, [loading, userData, streakData]);
-
-  // Debug log for state
-  useEffect(() => {
-    console.log('PracticeDashboard state:', { loading, userData, streakData });
-  }, [loading, userData, streakData]);
 
   function generateActivityLog() {
     const today = new Date()
@@ -269,7 +250,7 @@ export default function PracticeDashboard() {
     )
   }
 
-  if (!loading && (!userData || !streakData)) {
+  if (!userData && !streakData) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
