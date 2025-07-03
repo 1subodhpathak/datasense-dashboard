@@ -168,7 +168,7 @@ const SqlJourney = () => {
         <Starfield />
       </div>
 
-      <div className="p-4 md:p-8 h-screen overflow-y-auto scrollbar-thin relative z-10 pb-40" style={{ background: "transparent" }}>
+      <div className="p-4 md:p-8 min-h-screen relative z-10 pb-40" style={{ background: "transparent" }}>
         {/* Page header with futuristic style */}
         <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="flex items-center justify-between">
