@@ -91,7 +91,7 @@ const Community = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 md:p-8 h-screen overflow-y-auto scrollbar-thin">
+      <div className="p-6 md:p-8 min-h-screen">
         <h1 className="text-3xl font-bold text-dsb-accent mb-6 glow-text">Community</h1>
         
         <section className="mt-8">
