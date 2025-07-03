@@ -11,11 +11,6 @@ import { useUser } from '@clerk/clerk-react'
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import UserDetailModal from "@/components/UserDetailModal"
 
-// Helper to strip 'user_' prefix if present
-// function getBackendUserId(clerkId: string) {
-//   return clerkId && clerkId.startsWith('user_') ? clerkId.replace('user_', '') : clerkId;
-// }
-
 export default function PracticeDashboard() {
   const { isLoaded, isSignedIn, user } = useUser()
   const [userData, setUserData] = useState(null)
@@ -24,137 +19,13 @@ export default function PracticeDashboard() {
   const [loading, setLoading] = useState(true)
   const [expandedSolved, setExpandedSolved] = useState(false)
   const [expandedSubmissions, setExpandedSubmissions] = useState(false)
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [userChecked, setUserChecked] = useState(false); // To avoid double fetch
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [userChecked, setUserChecked] = useState(false)
 
-  // On login, check if user exists in backend
-  useEffect(() => {
-    if (isLoaded && isSignedIn && user && !userChecked) {
-      const backendUserId = user.id;
-      axios.get(`https://server.datasenseai.com/practice-dashboard/${backendUserId}`)
-        .then(res => {
-          setShowProfileModal(false);
-          setUserChecked(true);
-        })
-        .catch(err => {
-          if (err.response?.status === 404) {
-            setShowProfileModal(false);
-            setUserChecked(true);
-          } else {
-            setShowProfileModal(false);
-            setUserChecked(true);
-          }
-        });
-    }
-  }, [isLoaded, isSignedIn, user, userChecked]);
-
-  // Only fetch dashboard data if user exists and modal is not shown
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !user || showProfileModal === true) {
-      setLoading(false)
-      return
-    }
-    if (!userChecked) return;
-
-    const backendUserId = user.id;
-    console.log(user.id)
-
-    setLoading(true);
-    const fetchData = async () => {
-      try {
-        const [userDataResponse, streakDataResponse] = await Promise.allSettled([
-          axios.get(`https://server.datasenseai.com/practice-dashboard/${backendUserId}`),
-          axios.get(`https://server.datasenseai.com/question-attempt/streak/${backendUserId}`),
-        ])
-
-        let processedUserData = null
-        let processedStreakData = null
-
-        if (userDataResponse.status === "fulfilled" && userDataResponse.value.data) {
-          const apiUserData = userDataResponse.value.data
-
-          const matchedSubmissions =
-            apiUserData.submissionHistory?.map((submission) => {
-              const solvedQuestion = apiUserData.solved?.find((question) => question._id === submission.questionId)
-              return {
-                ...submission,
-                solvedQuestion,
-              }
-            }) || []
-
-          processedUserData = {
-            username: user.username || user.firstName || "User",
-            email: user.primaryEmailAddress?.emailAddress || "user@example.com",
-            profileImageUrl: user.imageUrl || "/placeholder.svg?height=40&width=40",
-            fuel: apiUserData.fuel || 75,
-            isPremium: apiUserData.isPremium || false,
-            solved: apiUserData.solved || [],
-            submissionHistory: matchedSubmissions.slice().reverse(),
-            liveQuiz: apiUserData.liveQuiz || [],
-          }
-
-          if (apiUserData.totalQuestions) {
-            setTotalQuestions(apiUserData.totalQuestions)
-          }
-        } else {
-          processedUserData = createMockUserData()
-        }
-
-        if (streakDataResponse.status === "fulfilled" && streakDataResponse.value.data) {
-          const apiStreakData = streakDataResponse.value.data;
-          processedStreakData = {
-            subjectStreaks: new Map(
-              Object.entries(apiStreakData.subjectStreaks || {}).map(([subject, data]: [string, any]) => [
-                subject,
-                {
-                  currentStreak: data.currentStreak || 0,
-                  longestStreak: data.longestStreak || 0,
-                  lastActiveDate: data.lastActiveDate || null,
-                },
-              ])
-            ),
-            activityLog: apiStreakData.activityLog ?? generateActivityLog(),
-          };
-        } else {
-          processedStreakData = createMockStreakData();
-        }
-
-        setUserData(processedUserData)
-        setStreakData(processedStreakData)
-        setLoading(false)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        setUserData(createMockUserData())
-        setStreakData(createMockStreakData())
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
-
-  // Ensure mock data is set if API fails and state is still null after loading
-  useEffect(() => {
-    if (!loading) {
-      if (!userData) {
-        console.warn('userData was null after loading, setting mock data.');
-        setUserData(createMockUserData());
-      }
-      if (!streakData) {
-        console.warn('streakData was null after loading, setting mock data.');
-        setStreakData(createMockStreakData());
-      }
-    }
-  }, [loading, userData, streakData]);
-
-  // Debug log for state
-  useEffect(() => {
-    console.log('PracticeDashboard state:', { loading, userData, streakData });
-  }, [loading, userData, streakData]);
-
+  // Create mock data functions
   function generateActivityLog() {
     const today = new Date()
-    const activityLog: any = {}
+    const activityLog = {}
 
     for (let i = 0; i < 60; i++) {
       const date = new Date(today)
@@ -239,6 +110,124 @@ export default function PracticeDashboard() {
     }
   }
 
+  // On login, check if user exists in backend
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user && !userChecked) {
+      const backendUserId = user.id;
+      axios.get(`https://server.datasenseai.com/practice-dashboard/${backendUserId}`)
+        .then(res => {
+          setShowProfileModal(false);
+          setUserChecked(true);
+        })
+        .catch(err => {
+          if (err.response?.status === 404) {
+            setShowProfileModal(false);
+            setUserChecked(true);
+          } else {
+            setShowProfileModal(false);
+            setUserChecked(true);
+          }
+        });
+    }
+  }, [isLoaded, isSignedIn, user, userChecked]);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) {
+      setLoading(false)
+      return
+    }
+    
+    if (showProfileModal === true) {
+      setLoading(false)
+      return
+    }
+
+    if (!userChecked) return;
+
+    const backendUserId = user.id;
+    console.log('Fetching data for user:', user.id)
+
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        const [userDataResponse, streakDataResponse] = await Promise.allSettled([
+          axios.get(`https://server.datasenseai.com/practice-dashboard/${backendUserId}`),
+          axios.get(`https://server.datasenseai.com/question-attempt/streak/${backendUserId}`),
+        ])
+
+        let processedUserData = null
+        let processedStreakData = null
+
+        if (userDataResponse.status === "fulfilled" && userDataResponse.value.data) {
+          const apiUserData = userDataResponse.value.data
+
+          const matchedSubmissions =
+            apiUserData.submissionHistory?.map((submission) => {
+              const solvedQuestion = apiUserData.solved?.find((question) => question._id === submission.questionId)
+              return {
+                ...submission,
+                solvedQuestion,
+              }
+            }) || []
+
+          processedUserData = {
+            username: user.username || user.firstName || "User",
+            email: user.primaryEmailAddress?.emailAddress || "user@example.com",
+            profileImageUrl: user.imageUrl || "/placeholder.svg?height=40&width=40",
+            fuel: apiUserData.fuel || 75,
+            isPremium: apiUserData.isPremium || false,
+            solved: apiUserData.solved || [],
+            submissionHistory: matchedSubmissions.slice().reverse(),
+            liveQuiz: apiUserData.liveQuiz || [],
+          }
+
+          if (apiUserData.totalQuestions) {
+            setTotalQuestions(apiUserData.totalQuestions)
+          }
+        } else {
+          console.log('API failed, using mock data for userData')
+          processedUserData = createMockUserData()
+        }
+
+        if (streakDataResponse.status === "fulfilled" && streakDataResponse.value.data) {
+          const apiStreakData = streakDataResponse.value.data;
+          processedStreakData = {
+            subjectStreaks: new Map(
+              Object.entries(apiStreakData.subjectStreaks || {}).map(([subject, data]) => [
+                subject,
+                {
+                  currentStreak: data.currentStreak || 0,
+                  longestStreak: data.longestStreak || 0,
+                  lastActiveDate: data.lastActiveDate || null,
+                },
+              ])
+            ),
+            activityLog: apiStreakData.activityLog ?? generateActivityLog(),
+          };
+        } else {
+          console.log('API failed, using mock data for streakData')
+          processedStreakData = createMockStreakData();
+        }
+
+        console.log('Setting userData:', processedUserData)
+        console.log('Setting streakData:', processedStreakData)
+        
+        setUserData(processedUserData)
+        setStreakData(processedStreakData)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching data:", error)
+        console.log('Exception occurred, using mock data')
+        setUserData(createMockUserData())
+        setStreakData(createMockStreakData())
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
+
   const processStreakData = () => {
     if (!streakData) return null
 
@@ -247,7 +236,7 @@ export default function PracticeDashboard() {
     if (!(streakData.subjectStreaks instanceof Map)) {
       const subjectStreaksMap = new Map()
       if (streakData.subjectStreaks) {
-        Object.entries(streakData.subjectStreaks).forEach(([subject, data]: [string, any]) => {
+        Object.entries(streakData.subjectStreaks).forEach(([subject, data]) => {
           subjectStreaksMap.set(subject, {
             currentStreak: data.currentStreak || 0,
             longestStreak: data.longestStreak || 0,
@@ -267,6 +256,9 @@ export default function PracticeDashboard() {
 
   const processedStreakData = processStreakData()
 
+  // Debug logs
+  console.log('Current state:', { loading, userData, streakData, showProfileModal, userChecked })
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -280,22 +272,7 @@ export default function PracticeDashboard() {
     )
   }
 
-  if (!loading && (!userData || !streakData)) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <p className="text-lg text-white">No practice dashboard data available.</p>
-            <Button className="mt-4" onClick={() => window.location.reload()}>
-              Refresh
-            </Button>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  // If modal is open, block dashboard rendering
+  // If modal is open, show modal
   if (showProfileModal) {
     return (
       <DashboardLayout>
@@ -308,12 +285,22 @@ export default function PracticeDashboard() {
     );
   }
 
-  // Debug print for userData and streakData
-  // Remove this after confirming the UI renders as expected
-  // eslint-disable-next-line
-  console.log('PracticeDashboard render userData:', userData);
-  // eslint-disable-next-line
-  console.log('PracticeDashboard render streakData:', streakData);
+  // If no data after loading, show error message
+  if (!userData || !streakData) {
+    console.log('No data available, userData:', userData, 'streakData:', streakData)
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-lg text-white">Failed to load dashboard data.</p>
+            <Button className="mt-4" onClick={() => window.location.reload()}>
+              Refresh
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
@@ -351,7 +338,7 @@ export default function PracticeDashboard() {
                 <div className="mt-2">
                   <div className="text-sm font-medium mb-2 text-white">Recently Solved:</div>
                   <div className="space-y-2">
-                    {userData.solved.slice(0, expandedSolved ? userData.solved.length : 3).map((question: any) => (
+                    {userData.solved.slice(0, expandedSolved ? userData.solved.length : 3).map((question) => (
                       <div
                         key={question._id}
                         className="text-sm p-2 rounded-md bg-dsb-neutral3/20 border border-dsb-neutral3/30"
@@ -399,7 +386,7 @@ export default function PracticeDashboard() {
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-bold text-white glow-text-subtle">
                   {processedStreakData && processedStreakData.subjectStreaks.size > 0
-                    ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s: any) => s.currentStreak))
+                    ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s) => s.currentStreak))
                     : 0}
                 </div>
                 <div className="flex -space-x-1">
@@ -426,7 +413,7 @@ export default function PracticeDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-white glow-text-subtle">
                 {processedStreakData && processedStreakData.subjectStreaks.size > 0
-                  ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s: any) => s.longestStreak))
+                  ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s) => s.longestStreak))
                   : 0}
               </div>
             </CardContent>
@@ -441,7 +428,7 @@ export default function PracticeDashboard() {
               <div className="text-3xl font-bold text-white glow-text-subtle">
                 {userData.submissionHistory && userData.submissionHistory.length > 0
                   ? Math.round(
-                      (userData.submissionHistory.filter((s: any) => s.isCorrect).length /
+                      (userData.submissionHistory.filter((s) => s.isCorrect).length /
                         userData.submissionHistory.length) *
                         100,
                     )
@@ -465,12 +452,12 @@ export default function PracticeDashboard() {
               <div className="flex flex-wrap gap-1">
                 {processedStreakData &&
                   processedStreakData.activityLog &&
-                  Object.entries(processedStreakData.activityLog).flatMap(([year, yearData]: [string, any]) =>
-                    Object.entries(yearData.months || {}).flatMap(([month, monthData]: [string, any]) =>
-                      Object.entries(monthData || {}).map(([day, activity]: [string, any]) => {
+                  Object.entries(processedStreakData.activityLog).flatMap(([year, yearData]) =>
+                    Object.entries(yearData.months || {}).flatMap(([month, monthData]) =>
+                      Object.entries(monthData || {}).map(([day, activity]) => {
                         const activityLevel =
                           typeof activity === "object"
-                            ? Object.values(activity).reduce((sum: number, val: any) => sum + (typeof val === "number" ? val : 0), 0)
+                            ? Object.values(activity).reduce((sum, val) => sum + (typeof val === "number" ? val : 0), 0)
                             : typeof activity === "number"
                               ? activity
                               : 0
@@ -518,7 +505,7 @@ export default function PracticeDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {processedStreakData &&
-                  [...processedStreakData.subjectStreaks.entries()].map(([subject, data]: [string, any]) => (
+                  [...processedStreakData.subjectStreaks.entries()].map(([subject, data]) => (
                     <div key={subject}>
                       <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium text-white">{subject}</span>
@@ -570,7 +557,7 @@ export default function PracticeDashboard() {
                   {userData.submissionHistory && userData.submissionHistory.length > 0 ? (
                     userData.submissionHistory
                       .slice(0, expandedSubmissions ? userData.submissionHistory.length : 5)
-                      .map((submission: any, index: number) => {
+                      .map((submission, index) => {
                         let title = submission.solvedQuestion?.title || "Problem"
                         if (!title && submission.submittedCode) {
                           if (submission.submittedCode.includes("find_max")) {
@@ -665,7 +652,7 @@ export default function PracticeDashboard() {
               <CardContent>
                 <div className="space-y-6">
                   {userData.liveQuiz && userData.liveQuiz.length > 0 ? (
-                    userData.liveQuiz.map((quiz: any, index: number) => (
+                    userData.liveQuiz.map((quiz, index) => (
                       <div key={index}>
                         <div className="flex justify-between mb-1">
                           <span className="font-medium text-white">{quiz.subject}</span>
