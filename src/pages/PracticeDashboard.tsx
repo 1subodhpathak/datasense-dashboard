@@ -134,16 +134,21 @@ export default function PracticeDashboard() {
   // Fetch dashboard data
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) {
+      console.log('User not loaded or signed in, setting loading to false')
       setLoading(false)
       return
     }
     
     if (showProfileModal === true) {
+      console.log('Profile modal is showing, setting loading to false')
       setLoading(false)
       return
     }
 
-    if (!userChecked) return;
+    if (!userChecked) {
+      console.log('User not checked yet, waiting...')
+      return;
+    }
 
     const backendUserId = user.id;
     console.log('Fetching data for user:', user.id)
@@ -151,6 +156,7 @@ export default function PracticeDashboard() {
     setLoading(true);
     const fetchData = async () => {
       try {
+        console.log('Starting API calls...')
         const [userDataResponse, streakDataResponse] = await Promise.allSettled([
           axios.get(`https://server.datasenseai.com/practice-dashboard/${backendUserId}`),
           axios.get(`https://server.datasenseai.com/question-attempt/streak/${backendUserId}`),
@@ -160,6 +166,7 @@ export default function PracticeDashboard() {
         let processedStreakData = null
 
         if (userDataResponse.status === "fulfilled" && userDataResponse.value.data) {
+          console.log('API success for userData')
           const apiUserData = userDataResponse.value.data
 
           const matchedSubmissions =
@@ -186,11 +193,12 @@ export default function PracticeDashboard() {
             setTotalQuestions(apiUserData.totalQuestions)
           }
         } else {
-          console.log('API failed, using mock data for userData')
+          console.log('API failed for userData, using mock data')
           processedUserData = createMockUserData()
         }
 
         if (streakDataResponse.status === "fulfilled" && streakDataResponse.value.data) {
+          console.log('API success for streakData')
           const apiStreakData = streakDataResponse.value.data;
           processedStreakData = {
             subjectStreaks: new Map(
@@ -206,7 +214,7 @@ export default function PracticeDashboard() {
             activityLog: apiStreakData.activityLog ?? generateActivityLog(),
           };
         } else {
-          console.log('API failed, using mock data for streakData')
+          console.log('API failed for streakData, using mock data')
           processedStreakData = createMockStreakData();
         }
 
@@ -215,12 +223,20 @@ export default function PracticeDashboard() {
         
         setUserData(processedUserData)
         setStreakData(processedStreakData)
+        
+        console.log('Setting loading to false')
         setLoading(false)
       } catch (error) {
         console.error("Error fetching data:", error)
         console.log('Exception occurred, using mock data')
-        setUserData(createMockUserData())
-        setStreakData(createMockStreakData())
+        const mockUserData = createMockUserData()
+        const mockStreakData = createMockStreakData()
+        
+        console.log('Setting mock userData:', mockUserData)
+        console.log('Setting mock streakData:', mockStreakData)
+        
+        setUserData(mockUserData)
+        setStreakData(mockStreakData)
         setLoading(false)
       }
     }
@@ -229,7 +245,10 @@ export default function PracticeDashboard() {
   }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
 
   const processStreakData = () => {
-    if (!streakData) return null
+    if (!streakData) {
+      console.log('No streakData to process')
+      return null
+    }
 
     const processedActivityLog = streakData.activityLog
 
@@ -257,9 +276,47 @@ export default function PracticeDashboard() {
   const processedStreakData = processStreakData()
 
   // Debug logs
-  console.log('Current state:', { loading, userData, streakData, showProfileModal, userChecked })
+  console.log('Current state:', { 
+    loading, 
+    userData: !!userData, 
+    streakData: !!streakData, 
+    showProfileModal, 
+    userChecked,
+    isLoaded,
+    isSignedIn,
+    hasUser: !!user
+  })
+
+  // Early returns for different states
+  if (!isLoaded) {
+    console.log('Clerk not loaded yet')
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-dsb-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-lg text-white">Loading authentication...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!isSignedIn || !user) {
+    console.log('User not signed in')
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-lg text-white">Please sign in to view your practice dashboard.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   if (loading) {
+    console.log('Still loading data')
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
@@ -274,6 +331,7 @@ export default function PracticeDashboard() {
 
   // If modal is open, show modal
   if (showProfileModal) {
+    console.log('Showing profile modal')
     return (
       <DashboardLayout>
         <UserDetailModal
@@ -285,22 +343,38 @@ export default function PracticeDashboard() {
     );
   }
 
-  // If no data after loading, show error message
+  // Check if we have the required data
   if (!userData || !streakData) {
-    console.log('No data available, userData:', userData, 'streakData:', streakData)
+    console.log('Missing data - userData:', !!userData, 'streakData:', !!streakData)
+    
+    // Force set mock data if we don't have it
+    if (!userData) {
+      console.log('Force setting mock userData')
+      setUserData(createMockUserData())
+    }
+    if (!streakData) {
+      console.log('Force setting mock streakData')
+      setStreakData(createMockStreakData())
+    }
+    
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <p className="text-lg text-white">Failed to load dashboard data.</p>
-            <Button className="mt-4" onClick={() => window.location.reload()}>
-              Refresh
+            <p className="text-lg text-white">Loading dashboard data...</p>
+            <Button className="mt-4" onClick={() => {
+              setUserData(createMockUserData())
+              setStreakData(createMockStreakData())
+            }}>
+              Load Mock Data
             </Button>
           </div>
         </div>
       </DashboardLayout>
     )
   }
+
+  console.log('Rendering main dashboard content')
 
   return (
     <DashboardLayout>
