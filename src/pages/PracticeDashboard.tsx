@@ -38,7 +38,7 @@ export default function PracticeDashboard() {
         })
         .catch(err => {
           if (err.response?.status === 404) {
-            setShowProfileModal(true);
+            setShowProfileModal(false);
             setUserChecked(true);
           } else {
             setShowProfileModal(false);
@@ -133,6 +133,25 @@ export default function PracticeDashboard() {
     fetchData()
   }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
 
+  // Ensure mock data is set if API fails and state is still null after loading
+  useEffect(() => {
+    if (!loading) {
+      if (!userData) {
+        console.warn('userData was null after loading, setting mock data.');
+        setUserData(createMockUserData());
+      }
+      if (!streakData) {
+        console.warn('streakData was null after loading, setting mock data.');
+        setStreakData(createMockStreakData());
+      }
+    }
+  }, [loading, userData, streakData]);
+
+  // Debug log for state
+  useEffect(() => {
+    console.log('PracticeDashboard state:', { loading, userData, streakData });
+  }, [loading, userData, streakData]);
+
   function generateActivityLog() {
     const today = new Date()
     const activityLog: any = {}
@@ -161,40 +180,51 @@ export default function PracticeDashboard() {
 
   function createMockUserData() {
     return {
-      username: user?.username || user?.firstName || "CodeMaster",
-      email: user?.primaryEmailAddress?.emailAddress || "codemaster@example.com",
-      profileImageUrl: user?.imageUrl || "/placeholder.svg?height=40&width=40",
+      username: "CodeMaster",
+      email: "codemaster@example.com",
+      profileImageUrl: "/placeholder.svg?height=40&width=40",
       fuel: 75,
       isPremium: true,
-      solved: new Array(10).fill({}),
+      solved: [
+        { _id: "1", title: "SQL Basics", difficulty: "easy" },
+        { _id: "2", title: "Array Manipulation", difficulty: "medium" },
+        { _id: "3", title: "Graph Traversal", difficulty: "hard" },
+        { _id: "4", title: "String Reversal", difficulty: "easy" },
+        { _id: "5", title: "Binary Search", difficulty: "medium" },
+        { _id: "6", title: "Tree Height", difficulty: "hard" },
+        { _id: "7", title: "SQL Joins", difficulty: "medium" },
+        { _id: "8", title: "Sorting Algorithms", difficulty: "easy" },
+        { _id: "9", title: "Dynamic Programming", difficulty: "hard" },
+        { _id: "10", title: "Recursion Basics", difficulty: "easy" }
+      ],
       submissionHistory: [
         {
-          questionId: null,
+          _id: "a",
           isCorrect: true,
-          submittedCode: "SELECT  Festival_Name,Country,Ticket_Type FROM festivaldata;",
+          submittedCode: "SELECT * FROM users;",
           submittedAt: new Date(Date.now() - 3600000).toISOString(),
-          _id: "67571ad63f4d82f359e49df9",
+          solvedQuestion: { title: "SQL Basics", difficulty: "easy" }
         },
         {
-          questionId: null,
+          _id: "b",
           isCorrect: false,
-          submittedCode: "def find_max(lst):\n    # Your code here\n    print('heya')",
+          submittedCode: "def reverse_list(lst): return lst[::-1]",
           submittedAt: new Date(Date.now() - 86400000).toISOString(),
-          _id: "6744c5c35a3bea765a844345",
+          solvedQuestion: { title: "String Reversal", difficulty: "easy" }
         },
         {
-          questionId: null,
+          _id: "c",
           isCorrect: true,
-          submittedCode: "select festival_name, city, date from festivaldata where country='USA';",
+          submittedCode: "function binarySearch(arr, x) { /* ... */ }",
           submittedAt: new Date(Date.now() - 172800000).toISOString(),
-          _id: "67daae7677de071e30f7a386",
-        },
+          solvedQuestion: { title: "Binary Search", difficulty: "medium" }
+        }
       ],
       liveQuiz: [
         { subject: "Algorithms", scores: 85, totalScores: 100 },
         { subject: "Data Structures", scores: 70, totalScores: 100 },
-        { subject: "System Design", scores: 60, totalScores: 100 },
-      ],
+        { subject: "System Design", scores: 60, totalScores: 100 }
+      ]
     }
   }
 
@@ -250,7 +280,7 @@ export default function PracticeDashboard() {
     )
   }
 
-  if (!userData && !streakData) {
+  if (!loading && (!userData || !streakData)) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
@@ -277,6 +307,13 @@ export default function PracticeDashboard() {
       </DashboardLayout>
     );
   }
+
+  // Debug print for userData and streakData
+  // Remove this after confirming the UI renders as expected
+  // eslint-disable-next-line
+  console.log('PracticeDashboard render userData:', userData);
+  // eslint-disable-next-line
+  console.log('PracticeDashboard render streakData:', streakData);
 
   return (
     <DashboardLayout>
