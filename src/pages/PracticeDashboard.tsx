@@ -224,18 +224,22 @@ export default function PracticeDashboard() {
         if (streakDataResponse.status === "fulfilled" && streakDataResponse.value.data) {
           console.log('API success for streakData')
           const apiStreakData = streakDataResponse.value.data;
+          
+          // Convert the API response to the expected format
+          const subjectStreaksMap = new Map()
+          if (apiStreakData.subjectStreaks) {
+            Object.entries(apiStreakData.subjectStreaks).forEach(([subject, data]) => {
+              subjectStreaksMap.set(subject, {
+                currentStreak: (data as SubjectStreak).currentStreak || 0,
+                longestStreak: (data as SubjectStreak).longestStreak || 0,
+                lastActiveDate: (data as SubjectStreak).lastActiveDate || null,
+              })
+            })
+          }
+          
           processedStreakData = {
-            subjectStreaks: new Map(
-              Object.entries(apiStreakData.subjectStreaks || {} as Record<string, SubjectStreak>).map(([subject, data]) => [
-                subject,
-                {
-                  currentStreak: (data as SubjectStreak).currentStreak || 0,
-                  longestStreak: (data as SubjectStreak).longestStreak || 0,
-                  lastActiveDate: (data as SubjectStreak).lastActiveDate || null,
-                },
-              ])
-            ),
-            activityLog: apiStreakData.activityLog ?? generateActivityLog(),
+            subjectStreaks: subjectStreaksMap,
+            activityLog: apiStreakData.activityLog || generateActivityLog(),
           };
         } else {
           console.log('API failed for streakData, using mock data')
@@ -267,37 +271,6 @@ export default function PracticeDashboard() {
 
     fetchData()
   }, [isLoaded, isSignedIn, user, showProfileModal, userChecked])
-
-  const processStreakData = () => {
-    if (!streakData) {
-      console.log('No streakData to process')
-      return null
-    }
-
-    const processedActivityLog = streakData.activityLog
-
-    if (!(streakData.subjectStreaks instanceof Map)) {
-      const subjectStreaksMap = new Map<string, SubjectStreak>()
-      if (streakData.subjectStreaks) {
-        Object.entries(streakData.subjectStreaks as Record<string, SubjectStreak>).forEach(([subject, data]) => {
-          subjectStreaksMap.set(subject, {
-            currentStreak: (data as SubjectStreak).currentStreak || 0,
-            longestStreak: (data as SubjectStreak).longestStreak || 0,
-            lastActiveDate: (data as SubjectStreak).lastActiveDate || new Date().toISOString(),
-          })
-        })
-      }
-      return {
-        ...streakData,
-        subjectStreaks: subjectStreaksMap,
-        activityLog: processedActivityLog,
-      }
-    }
-
-    return streakData
-  }
-
-  const processedStreakData = processStreakData()
 
   // Debug logs
   console.log('Current state:', { 
@@ -367,31 +340,29 @@ export default function PracticeDashboard() {
     );
   }
 
-  // Check if we have the required data
-  if (!userData || !streakData) {
-    console.log('Missing data - userData:', !!userData, 'streakData:', !!streakData)
-    
-    // Force set mock data if we don't have it
-    if (!userData) {
-      console.log('Force setting mock userData')
-      setUserData(createMockUserData())
-    }
-    if (!streakData) {
-      console.log('Force setting mock streakData')
-      setStreakData(createMockStreakData())
-    }
-    
+  // Check if we have the required data - FIXED: Remove the early return that was preventing rendering
+  if (!userData) {
+    console.log('Missing userData, setting mock data')
+    setUserData(createMockUserData())
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <p className="text-lg text-white">Loading dashboard data...</p>
-            <Button className="mt-4" onClick={() => {
-              setUserData(createMockUserData())
-              setStreakData(createMockStreakData())
-            }}>
-              Load Mock Data
-            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!streakData) {
+    console.log('Missing streakData, setting mock data')
+    setStreakData(createMockStreakData())
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-lg text-white">Loading dashboard data...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -483,8 +454,8 @@ export default function PracticeDashboard() {
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-bold text-white glow-text-subtle">
-                  {processedStreakData && processedStreakData.subjectStreaks.size > 0
-                    ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s) => s.currentStreak))
+                  {streakData && streakData.subjectStreaks.size > 0
+                    ? Math.max(...[...streakData.subjectStreaks.values()].map((s) => s.currentStreak))
                     : 0}
                 </div>
                 <div className="flex -space-x-1">
@@ -510,8 +481,8 @@ export default function PracticeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white glow-text-subtle">
-                {processedStreakData && processedStreakData.subjectStreaks.size > 0
-                  ? Math.max(...[...processedStreakData.subjectStreaks.values()].map((s) => s.longestStreak))
+                {streakData && streakData.subjectStreaks.size > 0
+                  ? Math.max(...[...streakData.subjectStreaks.values()].map((s) => s.longestStreak))
                   : 0}
               </div>
             </CardContent>
@@ -548,9 +519,9 @@ export default function PracticeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-1">
-                {processedStreakData &&
-                  processedStreakData.activityLog &&
-                  Object.entries(processedStreakData.activityLog).flatMap(([year, yearData]) =>
+                {streakData &&
+                  streakData.activityLog &&
+                  Object.entries(streakData.activityLog).flatMap(([year, yearData]) =>
                     Object.entries((yearData as { months: Record<string, any> }).months || {}).flatMap(([month, monthData]) =>
                       Object.entries(monthData as Record<string, any> || {}).map(([day, activity]) => {
                         const activityLevel =
@@ -602,8 +573,8 @@ export default function PracticeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {processedStreakData &&
-                  [...processedStreakData.subjectStreaks.entries()].map(([subject, data]) => (
+                {streakData &&
+                  [...streakData.subjectStreaks.entries()].map(([subject, data]) => (
                     <div key={subject}>
                       <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium text-white">{subject}</span>
