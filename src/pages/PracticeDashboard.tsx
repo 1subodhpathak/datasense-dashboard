@@ -340,29 +340,24 @@ export default function PracticeDashboard() {
     );
   }
 
-  // Check if we have the required data - FIXED: Remove the early return that was preventing rendering
+  // Force set mock data if missing - this ensures we always have data to render
   if (!userData) {
-    console.log('Missing userData, setting mock data')
+    console.log('Force setting mock userData')
     setUserData(createMockUserData())
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <p className="text-lg text-white">Loading dashboard data...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
+  }
+  
+  if (!streakData) {
+    console.log('Force setting mock streakData')
+    setStreakData(createMockStreakData())
   }
 
-  if (!streakData) {
-    console.log('Missing streakData, setting mock data')
-    setStreakData(createMockStreakData())
+  // If we still don't have data after setting mock data, show loading
+  if (!userData || !streakData) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <p className="text-lg text-white">Loading dashboard data...</p>
+            <p className="text-lg text-white">Preparing dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -373,7 +368,7 @@ export default function PracticeDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white glow-text-subtle mb-2">
