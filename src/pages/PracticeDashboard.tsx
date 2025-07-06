@@ -11,10 +11,34 @@ import { useUser } from '@clerk/clerk-react'
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import UserDetailModal from "@/components/UserDetailModal"
 
+// --- Add TypeScript types ---
+type SubjectStreak = {
+  currentStreak: number
+  longestStreak: number
+  lastActiveDate?: string | null
+}
+
+type SubjectStreaksMap = Map<string, SubjectStreak>
+
+type ActivityLog = {
+  [year: string]: {
+    months: {
+      [month: string]: {
+        [day: string]: number | { [subject: string]: number }
+      }
+    }
+  }
+}
+
+type StreakData = {
+  subjectStreaks: SubjectStreaksMap
+  activityLog: ActivityLog
+}
+
 export default function PracticeDashboard() {
   const { isLoaded, isSignedIn, user } = useUser()
-  const [userData, setUserData] = useState(null)
-  const [streakData, setStreakData] = useState(null)
+  const [userData, setUserData] = useState<any>(null)
+  const [streakData, setStreakData] = useState<StreakData | null>(null)
   const [totalQuestions, setTotalQuestions] = useState(100)
   const [loading, setLoading] = useState(true)
   const [expandedSolved, setExpandedSolved] = useState(false)
@@ -99,7 +123,7 @@ export default function PracticeDashboard() {
     }
   }
 
-  function createMockStreakData() {
+  function createMockStreakData(): StreakData {
     return {
       subjectStreaks: new Map([
         ["Algorithms", { currentStreak: 7, longestStreak: 14 }],
@@ -202,12 +226,12 @@ export default function PracticeDashboard() {
           const apiStreakData = streakDataResponse.value.data;
           processedStreakData = {
             subjectStreaks: new Map(
-              Object.entries(apiStreakData.subjectStreaks || {}).map(([subject, data]) => [
+              Object.entries(apiStreakData.subjectStreaks || {} as Record<string, SubjectStreak>).map(([subject, data]) => [
                 subject,
                 {
-                  currentStreak: data.currentStreak || 0,
-                  longestStreak: data.longestStreak || 0,
-                  lastActiveDate: data.lastActiveDate || null,
+                  currentStreak: (data as SubjectStreak).currentStreak || 0,
+                  longestStreak: (data as SubjectStreak).longestStreak || 0,
+                  lastActiveDate: (data as SubjectStreak).lastActiveDate || null,
                 },
               ])
             ),
@@ -253,13 +277,13 @@ export default function PracticeDashboard() {
     const processedActivityLog = streakData.activityLog
 
     if (!(streakData.subjectStreaks instanceof Map)) {
-      const subjectStreaksMap = new Map()
+      const subjectStreaksMap = new Map<string, SubjectStreak>()
       if (streakData.subjectStreaks) {
-        Object.entries(streakData.subjectStreaks).forEach(([subject, data]) => {
+        Object.entries(streakData.subjectStreaks as Record<string, SubjectStreak>).forEach(([subject, data]) => {
           subjectStreaksMap.set(subject, {
-            currentStreak: data.currentStreak || 0,
-            longestStreak: data.longestStreak || 0,
-            lastActiveDate: data.lastActiveDate || new Date().toISOString(),
+            currentStreak: (data as SubjectStreak).currentStreak || 0,
+            longestStreak: (data as SubjectStreak).longestStreak || 0,
+            lastActiveDate: (data as SubjectStreak).lastActiveDate || new Date().toISOString(),
           })
         })
       }
@@ -527,11 +551,11 @@ export default function PracticeDashboard() {
                 {processedStreakData &&
                   processedStreakData.activityLog &&
                   Object.entries(processedStreakData.activityLog).flatMap(([year, yearData]) =>
-                    Object.entries(yearData.months || {}).flatMap(([month, monthData]) =>
-                      Object.entries(monthData || {}).map(([day, activity]) => {
+                    Object.entries((yearData as { months: Record<string, any> }).months || {}).flatMap(([month, monthData]) =>
+                      Object.entries(monthData as Record<string, any> || {}).map(([day, activity]) => {
                         const activityLevel =
                           typeof activity === "object"
-                            ? Object.values(activity).reduce((sum, val) => sum + (typeof val === "number" ? val : 0), 0)
+                            ? Object.values(activity as Record<string, number>).reduce((sum, val) => sum + (typeof val === "number" ? val : 0), 0)
                             : typeof activity === "number"
                               ? activity
                               : 0
@@ -547,7 +571,7 @@ export default function PracticeDashboard() {
 
                         const subjectList =
                           typeof activity === "object"
-                            ? Object.entries(activity)
+                            ? Object.entries(activity as Record<string, number>)
                                 .map(([subject, count]) => `${subject}: ${count}`)
                                 .join(", ")
                             : ""
