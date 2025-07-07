@@ -20,7 +20,7 @@ import { useUser, RedirectToSignIn } from '@clerk/clerk-react';
 import { WebSocketProvider } from './util/WebsocketProvider'
 import { NotificationProvider } from "@/hooks/NotificationProvider";
 import axios from 'axios';
-import PracticeDashboard from "./pages/PracticeDashboard";
+import DashboardPractice from "./pages/DashboardPractice";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -90,7 +90,7 @@ const App = () => {
                       path="/practice-dashboard" 
                       element={
                         <ProtectedRoute>
-                          <PracticeDashboard />
+                          <DashboardPractice />
                         </ProtectedRoute>
                       } 
                     />
