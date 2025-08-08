@@ -8,6 +8,7 @@ import JourneyStats from "@/components/journey/JourneyStats";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUser } from "@clerk/clerk-react";
 import { useFetchBadges } from "@/hooks/useFetchBadges";
+import ThreeBackground from "@/components/ThreeBackground";
 
 // Starfield background component
 const Starfield = () => {
@@ -156,7 +157,7 @@ const SqlJourney = () => {
   return (
     <DashboardLayout>
       {/* Cyber grid, blue glow, and stars background */}
-      <div className="fixed inset-0 w-full h-full z-0" style={{ background: "#000" }}>
+      <div className="fixed inset-0 w-full h-full z-0">
         {/* Soft blue radial glow */}
         <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[900px] rounded-full pointer-events-none z-0"
           style={{
@@ -164,15 +165,16 @@ const SqlJourney = () => {
             filter: "blur(2px)",
           }}
         />
-        <GridBackground />
-        <Starfield />
+        {/* <GridBackground /> */}
+        <ThreeBackground />
+        {/* <Starfield /> */}
       </div>
 
       <div className="p-4 md:p-8 min-h-screen relative z-10 pb-40" style={{ background: "transparent" }}>
         {/* Page header with futuristic style */}
         <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl md:text-3xl font-bold text-dsb-accent">
+            <h1 className="text-xl md:text-3xl font-bold text-white glow-text-subtle">
               SQL Learning Journey
             </h1>
             <div className="hidden md:flex items-center gap-2">

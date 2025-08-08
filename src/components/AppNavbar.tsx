@@ -17,11 +17,11 @@ const AppNavbar = () => {
     ];
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-[#333333] shadow-xl">
-            <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-[#008B8B] backdrop-blur-xl shadow-xl">
+            <div className="flex items-center justify-between px-6 h-20">
                 {/* Logo - Left */}
                 <div className="flex items-center">
-                    <img src="/images/logo.png" alt="Logo" className="h-10 md:h-12 rounded-lg shadow-lg" />
+                    <img src="/images/logo.png" alt="Logo" className="h-7 md:h-9 " />
                 </div>
 
                 {/* Navigation Links - Center */}
@@ -35,7 +35,7 @@ const AppNavbar = () => {
                                 className={cn(
                                     "flex flex-col items-center justify-center rounded-xl transition-all duration-200 p-2 min-w-[60px] group",
                                     isActive
-                                        ? "bg-gradient-to-br from-dsb-accent/30 to-dsb-accent/10 text-dsb-accent shadow-lg"
+                                        ? "bg-[#1f4041] text-white font-bold shadow-lg"
                                         : "hover:bg-dsb-accent/10 hover:text-dsb-accent text-white/70"
                                 )}
                             >

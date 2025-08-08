@@ -53,7 +53,7 @@ const LeaderboardCategory = ({ title, icon, players, currentUserId, loading }: L
         <div className="flex items-center justify-center size-8 rounded-full bg-dsb-accent/20">
           {icon}
         </div>
-        <h2 className="text-lg font-medium text-white">{title}</h2>
+        <h2 className="text-lg font-medium text-[#00ffff]">{title}</h2>
       </div>
 
       <div className="overflow-x-auto">
@@ -262,7 +262,7 @@ export default function LeaderboardPage() {
     <DashboardLayout>
       <div className="p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <h1 className="text-2xl font-medium text-white glow-text">Leaderboard</h1>
+          <h1 className="text-3xl font-bold text-white glow-text">Leaderboard</h1>
 
           <div className="relative w-full md:w-auto">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">

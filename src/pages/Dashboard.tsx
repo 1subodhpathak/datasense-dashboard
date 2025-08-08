@@ -113,8 +113,8 @@ const Dashboard = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log("Dashboard component mounted");
-    console.log("Initial active tab:", activeTab);
+    // console.log("Dashboard component mounted");
+    // console.log("Initial active tab:", activeTab);
   }, []);
 
   // Ensure we update the tab if URL parameters change
@@ -283,12 +283,12 @@ const Dashboard = () => {
   ];
 
   // Show a notification toast for debugging purposes when component mounts
-  useEffect(() => {
-    toast.info("Dashboard loaded", {
-      description: `Active tab: ${activeTab}`,
-      duration: 3000
-    });
-  }, []);
+  // useEffect(() => {
+  //   toast.info("Dashboard loaded", {
+  //     description: `Active tab: ${activeTab}`,
+  //     duration: 3000
+  //   });
+  // }, []);
 
   return (
     <DashboardLayout>

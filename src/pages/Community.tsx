@@ -92,7 +92,7 @@ const Community = () => {
   return (
     <DashboardLayout>
       <div className="p-6 md:p-8 min-h-screen">
-        <h1 className="text-3xl font-bold text-dsb-accent mb-6 glow-text">Community</h1>
+        <h1 className="text-3xl font-bold text-white mb-6 glow-text">Community</h1>
         
         <section className="mt-8">
           <h2 className="text-2xl text-white mb-6 font-medium">Join Our Communities</h2>
