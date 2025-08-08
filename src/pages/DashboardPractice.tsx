@@ -194,12 +194,12 @@ const DashboardPractice = () => {
     fetchData();
   }, [isLoaded, isSignedIn, user]);
 
-  useEffect(() => {
-    toast.info("Practice Dashboard loaded", {
-      description: `Active tab: Practice Dashboard`,
-      duration: 3000,
-    });
-  }, []);
+  // useEffect(() => {
+  //   toast.info("Practice Dashboard loaded", {
+  //     description: `Active tab: Practice Dashboard`,
+  //     duration: 3000,
+  //   });
+  // }, []);
 
   // if (loading) { ... } // keep loading spinner logic commented as per your preference
 

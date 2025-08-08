@@ -48,7 +48,7 @@ const BadgesTab: React.FC<BadgesTabProps> = ({ badges, badgeType, setBadgeType }
     <div className="p-6 md:p-8 neo-glass-dark border-dsb-neutral3/30 rounded-xl backdrop-blur-md">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-medium text-white mb-2 glow-text">Your Badges and Achievements</h1>
+          <h1 className="text-2xl font-medium text-[#00ffff] mb-2 glow-text">Your Badges and Achievements</h1>
           <p className="text-dsb-neutral1 text-sm">Progress: 0/33 completed</p>
         </div>
         <Button
