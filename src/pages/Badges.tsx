@@ -226,7 +226,7 @@ const BadgesPage = () => {
                     >
                       {/* Background effects */}
                       <div className="absolute inset-0 z-0">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-dsb-accent/5 rounded-full blur-3xl"></div>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-black/30 rounded-full blur-3xl"></div>
                       </div>
 
                       <div className="flex justify-between items-start mb-3 relative z-10">

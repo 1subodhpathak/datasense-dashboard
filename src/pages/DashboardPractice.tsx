@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +120,11 @@ const DashboardPractice = () => {
   const [expandedSolved, setExpandedSolved] = useState(false);
   const [expandedSubmissions, setExpandedSubmissions] = useState(false);
   const [tab, setTab] = useState<'submissions' | 'quizzes'>('submissions');
+  const [handleClick, setHandleClick] = useState(false);
+
+  const handleButtonClick = () => {
+    setHandleClick(!handleClick);
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -344,13 +349,20 @@ const DashboardPractice = () => {
     <DashboardLayout>
       <div className="relative z-10 p-4 md:p-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white glow-text-subtle mb-2">
-            Practice Dashboard
-          </h1>
-          <p className="text-dsb-neutral1">
-            Track your learning progress and coding activities
-          </p>
+        <div className="flex justify-between items-center mb-2">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-white glow-text-subtle mb-2">
+              Practice Dashboard
+            </h1>
+            <p className="text-dsb-neutral1">
+              Track your learning progress and coding activities
+            </p>
+          </div>
+          <Link to="https://practice.datasenseai.com/">
+            <button onClick={handleButtonClick} className="text-dsb-accent font-semibold bg-black hover:bg-dsb-accent hover:text-black border-0 px-4 py-2 rounded-lg">
+              Practice
+            </button>
+          </Link>
         </div>
         {/* Top cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -440,7 +452,7 @@ const DashboardPractice = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="text-center text-sm text-dsb-neutral2">
+        <div className="text-center text-sm text-white">
           <p>Keep up the good work! Your next milestone is just around the corner.</p>
         </div>
       </div>
