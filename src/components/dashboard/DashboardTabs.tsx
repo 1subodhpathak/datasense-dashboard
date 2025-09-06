@@ -10,8 +10,8 @@ interface DashboardTabsProps {
 const DashboardTabs = ({ activeTab, setActiveTab }: DashboardTabsProps) => {
   const navigate = useNavigate();
   const tabs = [
-    { id: "overview", label: "Battleground overview" },
-    { id: "practice", label: "Practice overview" },
+    { id: "overview", label: "Overview" },
+    // { id: "practice", label: "Practice overview" },
     { id: "challenges", label: "Game History" }
   ];
 
@@ -21,11 +21,12 @@ const DashboardTabs = ({ activeTab, setActiveTab }: DashboardTabsProps) => {
     setActiveTab(tabId);
 
     // Update the URL with the tab parameter
-    navigate(`/dashboard${tabId !== "overview" ? `?tab=${tabId}` : ""}`);
+    // navigate(`/dashboard${tabId !== "overview" ? `?tab=${tabId}` : ""}`);
+    navigate(`/${tabId !== "overview" ? `?tab=${tabId}` : ""}`);
   };
 
   return (
-    <div className="flex justify-center w-full my-6 overflow-hidden">
+    <div className="flex justify-start w-full my-6 overflow-hidden">
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
         {tabs.map(tab => (
           <button

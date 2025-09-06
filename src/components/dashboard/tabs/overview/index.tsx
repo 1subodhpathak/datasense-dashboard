@@ -48,8 +48,8 @@ export function DashboardOverview({
   currentDay,
   maxDays
 }: DashboardOverviewProps) {
-  return <div className="min-h-screen p-6 bg-transparent">
-    <div className="max-w-[1400px] mx-auto space-y-6">
+  return <div className=" pt-6 bg-transparent mb-10">
+    <div className="mx-auto space-y-6">
       {/* Profile Overview Section */}
       <ProfileOverview stats={stats} leaderboardHighlights={leaderboardHighlights} />
 

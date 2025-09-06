@@ -220,8 +220,8 @@ const OverviewTab: React.FC<OverviewTabProps> = (props) => {
       <DashboardOverview {...props} />
       
       {/* Learning Section */}
-      <div className="mt-10">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mt-0">
+        <div className=" mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Learning Progress and Activity */}
           <div className="lg:col-span-2 space-y-6">
             {/* Overall Progress */}

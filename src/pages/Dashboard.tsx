@@ -9,6 +9,7 @@ import ChallengesTab from "@/components/dashboard/tabs/ChallengesTab";
 import LeaderboardTab from "@/components/dashboard/tabs/LeaderboardTab";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react"; // <-- Import Clerk
+import { Link } from "react-router-dom";
 
 interface BadgeType {
   id: number;
@@ -49,6 +50,11 @@ const Dashboard = () => {
     totalLosses: 0,
     totalGames: 0,
   });
+  const [handleClick, setHandleClick] = useState(false);
+  
+  const handleButtonClick = () => {
+    setHandleClick(!handleClick);
+  }
 
   // Set clerkId when user is loaded
   useEffect(() => {
@@ -297,10 +303,17 @@ const Dashboard = () => {
         <DashboardHeader />
 
         <div className="mt-2">
-          <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+          <div className="flex justify-between items-center">
+            <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Link to="https://battleground.datasenseai.com/start">
+              <button onClick={handleButtonClick} className="text-dsb-accent font-semibold bg-black hover:bg-dsb-accent hover:text-black border-0 px-4 py-2 rounded-lg">
+                Game
+              </button>
+            </Link>
+          </div>
 
           {/* Render the active tab */}
-          <div className="mt-6 w-full">
+          <div className="mt-1 w-full">
             {activeTab === "overview" && (
               <OverviewTab
                 stats={stats}
