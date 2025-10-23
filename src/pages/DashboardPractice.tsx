@@ -115,7 +115,8 @@ const DashboardPractice = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
-  const [totalQuestions, setTotalQuestions] = useState<number>(100);
+  // const [totalQuestions, setTotalQuestions] = useState<number>(500);
+  const [totalQuestions, setTotalQuestions] = useState<number>(500);
   const [loading, setLoading] = useState(true);
   const [expandedSolved, setExpandedSolved] = useState(false);
   const [expandedSubmissions, setExpandedSubmissions] = useState(false);

@@ -9,10 +9,11 @@ const AppNavbar = () => {
     const location = useLocation();
     const currentPath = location.pathname;
     const [showQuizDropdown, setShowQuizDropdown] = useState(false);
+    const handleBackToHome = () => {
+        window.location.href = "https://practice.datasenseai.com";
+    };    
 
     const menuItems = [
-        { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-        { icon: AppWindow, label: "Practice Dashboard", path: "/practice-dashboard" },
         {
             icon: BarChart3,
             label: "Quiz",
@@ -24,10 +25,12 @@ const AppNavbar = () => {
                 { label: "Mock Tests", path: "#" },
             ]
         },
-        { icon: Database, label: "SQL Journey", path: "/sql-journey" },
-        { icon: Users, label: "Community", path: "/community" },
+        { icon: AppWindow, label: "Learning", path: "/practice-dashboard" },
+        { icon: LayoutDashboard, label: "Battleground", path: "/" },
         { icon: BarChart3, label: "Leaderboard", path: "/leaderboard" },
-        { icon: Award, label: "Badges & Achievements", path: "/badges" }
+        { icon: Database, label: "SQL Journey", path: "/sql-journey" },
+        { icon: Award, label: "Badges & Achievements", path: "/badges" },
+        { icon: Users, label: "Community", path: "/community" }
     ];
 
     return (
@@ -35,7 +38,8 @@ const AppNavbar = () => {
             <div className="flex items-center justify-between px-6 h-20">
                 {/* Logo - Left */}
                 <div className="flex items-center">
-                    <img src="/images/logo.png" alt="Logo" className="h-7 md:h-9 " />
+                    <img src="/images/logo.png" alt="Logo" onClick={handleBackToHome} className="h-7 md:h-9 cursor-pointer" />
+                    {/* <img src="/images/logo.png" alt="Logo" className="h-7 md:h-9 " /> */}
                 </div>
 
                 {/* Navigation Links - Center */}
