@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 // import Start from "./pages/Start";
 import Dashboard from "./pages/Dashboard";
+import MainDashboard from "./pages/MainDashboard";
+import Battleground from "./pages/Battleground";
 import Community from "./pages/Community";
 import Leaderboard from "./pages/Leaderboard";
 import SqlJourney from "./pages/SqlJourney";
@@ -13,8 +15,11 @@ import NotFound from "./pages/NotFound";
 import Badges from "./pages/Badges";
 import { ThemeProvider } from './lib/theme-context'
 import Profile from "./pages/Profile";
+import Portfolio from "./pages/Portfolio";
 import Challenge from "./pages/Challenge";
 import ProfileEdit from "./pages/ProfileEdit";
+import MyLearnings from "./pages/MyLearnings";
+import Resources from "./pages/Resources";
 import { ProfileProvider } from "@/context/ProfileContext";
 import { useUser, RedirectToSignIn } from '@clerk/clerk-react';
 import { WebSocketProvider } from './util/WebsocketProvider'
@@ -78,22 +83,44 @@ const App = () => {
                     {/* {  <Route path="/" element={<iframe src="/home.html" style={{ width: '100%', height: '100vh', border: 'none' }} title="External Page" />} /> } */}
                     
                     {/* Protected routes - require authentication */}
+                    
+                    {/* Main professional dashboard */}
                     <Route 
-                      path="/" 
+                      path="/dashboard" 
                       element={
                         <ProtectedRoute>
-                          <Dashboard />
+                          <MainDashboard />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    
+                    {/* New routes */}
+                    <Route 
+                      path="/my-learnings" 
+                      element={
+                        <ProtectedRoute>
+                          <MyLearnings />
                         </ProtectedRoute>
                       } 
                     />
                     <Route 
-                      path="/practice-dashboard" 
+                      path="/resources" 
                       element={
                         <ProtectedRoute>
-                          <DashboardPractice />
+                          <Resources />
                         </ProtectedRoute>
                       } 
                     />
+                    <Route 
+                      path="/battleground" 
+                      element={
+                        <ProtectedRoute>
+                          <Battleground />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    
+                    {/* Existing routes */}
                     <Route 
                       path="/badges" 
                       element={
@@ -143,10 +170,38 @@ const App = () => {
                       } 
                     />
                     <Route 
+                      path="/portfolio" 
+                      element={
+                        <ProtectedRoute>
+                          <Portfolio />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
                       path="/profile-edit" 
                       element={
                         <ProtectedRoute>
                           <ProfileEdit />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    
+                    {/* Keep practice-dashboard accessible for UnifiedDashboard */}
+                    <Route 
+                      path="/practice-dashboard" 
+                      element={
+                        <ProtectedRoute>
+                          <DashboardPractice />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    
+                    {/* Redirect root to new dashboard */}
+                    <Route 
+                      path="/" 
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to="/dashboard" replace />
                         </ProtectedRoute>
                       } 
                     />

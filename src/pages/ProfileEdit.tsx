@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ProfileContext } from "@/context/ProfileContext";
+import { ProfileContext, type ProfileData as ContextProfileData } from "@/context/ProfileContext";
 import { Trash2, Camera, Save, Loader2, X, AlertCircle, Check, Grid } from "lucide-react";
 import * as avataaars from "@dicebear/avataaars";
 import * as bottts from "@dicebear/bottts";
@@ -10,11 +10,11 @@ import * as identicon from "@dicebear/identicon";
 import * as pixelArt from "@dicebear/pixel-art";
 import * as lorelei from "@dicebear/lorelei";
 import * as adventurer from "@dicebear/adventurer";
-import { createAvatar } from "@dicebear/core";
 import ReactCrop from "react-image-crop";
+import type { Crop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useUser } from "@clerk/clerk-react";
-import { ArrowLeft } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 const DEFAULT_BANNER = "/placeholder.svg?height=400&width=1200";
@@ -30,7 +30,7 @@ const diceBearStyles = [
     { name: "adventurer", lib: adventurer },
 ];
 
-interface ProfileData {
+interface ProfileApiData {
     avatar?: string;
     banner?: string;
     firstname: string;
@@ -49,19 +49,43 @@ interface AvatarData {
 
 // Get clerkId from context, localStorage, or props - replace with your auth solution
 
-// Mock ProfileContext for demo
-const MockProfileContext = {
-    profile: null,
-    setProfile: (profile: ProfileData) => {
-        console.log("Profile updated:", profile);
-    }
+const mapToContextProfile = (data: ProfileApiData | null): ContextProfileData | null => {
+    if (!data) return null;
+    return {
+        avatar: data.avatar || DEFAULT_AVATAR,
+        banner: data.banner || DEFAULT_BANNER,
+        firstName: data.firstname || "",
+        lastName: data.lastname || "",
+        email: data.email || "",
+        phone: data.mobile || "",
+        profession: data.profession || "",
+        company: data.company || "",
+        showPhone: Boolean(data.showPhone),
+    };
 };
 
-const ProfileEdit: React.FC = () => {
-    // Use mock context for demo - replace with actual context
-    const { profile: contextProfile, setProfile: setContextProfile } = MockProfileContext;
+const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void }> = ({ open, onOpenChange }) => {
     const navigate = useNavigate();
+    const { setProfile: setContextProfile } = useContext(ProfileContext);
     const { user } = useUser();
+    const isControlled = typeof open === "boolean" && typeof onOpenChange === "function";
+    const [internalOpen, setInternalOpen] = useState(true);
+    const dialogOpen = isControlled ? (open as boolean) : internalOpen;
+    
+    const handleDialogChange = (value: boolean) => {
+        if (isControlled && onOpenChange) {
+            onOpenChange(value);
+        } else {
+            setInternalOpen(value);
+            if (!value) {
+                navigate(-1);
+            }
+        }
+    };
+    
+    const closeDialog = () => handleDialogChange(false);
+    const inputClass =
+        "h-11 rounded-xl border border-dsb-neutral3/40 bg-white/90 text-slate-900 placeholder:text-dsb-neutral2 focus:border-dsb-accent focus:ring-0 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/50";
     
     // Profile data state
     const [avatar, setAvatar] = useState<string>(DEFAULT_AVATAR);
@@ -105,13 +129,13 @@ const ProfileEdit: React.FC = () => {
     // Image cropping states
     const [showCropModal, setShowCropModal] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
-    const [crop, setCrop] = useState({ unit: "%", width: 90, height: 90, x: 5, y: 5 });
+    const [crop, setCrop] = useState<Crop>({ unit: "%", width: 90, height: 90, x: 5, y: 5 });
     const [completedCrop, setCompletedCrop] = useState<any>(null);
     const [isCroppingAvatar, setIsCroppingAvatar] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
 
     // Original profile data for comparison
-    const [originalProfile, setOriginalProfile] = useState<ProfileData | null>(null);
+    const [originalProfile, setOriginalProfile] = useState<ProfileApiData | null>(null);
 
     // Generate random seed for avatars
     const generateRandomSeed = () => Math.random().toString(36).substring(7);
@@ -131,7 +155,7 @@ const ProfileEdit: React.FC = () => {
             });
 
             if (response.ok) {
-                const profileData = await response.json();
+                const profileData: ProfileApiData = await response.json();
                 
                 // Map API response to component state
                 setAvatar(profileData.avatar || DEFAULT_AVATAR);
@@ -148,9 +172,7 @@ const ProfileEdit: React.FC = () => {
                 setOriginalProfile(profileData);
                 
                 // Update context if available
-                if (setContextProfile) {
-                    setContextProfile(profileData);
-                }
+                setContextProfile(mapToContextProfile(profileData));
             } else if (response.status === 404) {
                 // Profile doesn't exist - use fallback/default values
                 console.log("Profile not found, using default values");
@@ -192,10 +214,12 @@ const ProfileEdit: React.FC = () => {
         setGeneratedAvatars(avatars);
     }, []);
 
-    // Fetch profile on component mount
+    // Fetch profile when dialog opens
     useEffect(() => {
-        fetchProfile();
-    }, []);
+        if (dialogOpen) {
+            fetchProfile();
+        }
+    }, [dialogOpen]);
 
     const isFormValid = email.trim() !== "" && /.+@.+\..+/.test(email);
     const isChanged = originalProfile ? (
@@ -531,15 +555,13 @@ const ProfileEdit: React.FC = () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const savedProfile = await response.json();
+            const savedProfile: ProfileApiData = await response.json();
             
             // Update original profile reference
             setOriginalProfile(savedProfile);
             
             // Update context if available
-            if (setContextProfile) {
-                setContextProfile(savedProfile);
-            }
+            setContextProfile(mapToContextProfile(savedProfile));
 
             setSuccess("Profile updated successfully!");
             
@@ -551,8 +573,8 @@ const ProfileEdit: React.FC = () => {
             
             setTimeout(() => {
                 setSuccess(null);
-                navigate();
-            }, 3000);
+                closeDialog();
+            }, 1200);
         } catch (err) {
             console.error('Error saving profile:', err);
             setError("Failed to update profile. Please try again.");
@@ -574,416 +596,385 @@ const ProfileEdit: React.FC = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="max-w-2xl mx-auto mt-12 p-8 rounded-2xl shadow-2xl border border-gray-700 bg-gray-900">
-                <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    <span className="ml-2 text-white">Loading profile...</span>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="max-w-2xl mx-auto mt-12 p-8 rounded-2xl shadow-2xl border border-gray-700 bg-gray-900">
-            {/* Back Arrow */}
-            <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="absolute left-6 top-6 bg-gray-800 hover:bg-gray-700 rounded-full p-2 transition-all border border-gray-700"
-                aria-label="Go back"
-            >
-                <ArrowLeft className="h-6 w-6 text-white" />
-            </button>
-
-            <h2 className="text-2xl font-bold text-white mb-6">Personal Information</h2>
-            
-            {/* Error Message */}
-            {error && (
-                <div className="mb-6 p-4 bg-red-900/20 border border-red-700/30 rounded-lg flex items-start backdrop-blur-sm">
-                    <AlertCircle className="h-5 w-5 text-red-400 mr-3 mt-0.5" />
-                    <p className="text-red-200">{error}</p>
-                </div>
-            )}
-
-            {/* Success Message */}
-            {success && (
-                <div className="mb-6 p-4 bg-green-900/20 border border-green-700/30 rounded-lg flex items-start backdrop-blur-sm">
-                    <Check className="h-5 w-5 text-green-400 mr-3 mt-0.5" />
-                    <p className="text-green-200">{success}</p>
-                </div>
-            )}
-
-            <form onSubmit={handleSave} className="space-y-6">
-                {/* Banner Section */}
-                <div className="relative rounded-lg overflow-hidden bg-gray-800 h-48 mb-8">
-                    {banner !== DEFAULT_BANNER || bannerPreview ? (
-                        <img
-                            src={bannerPreview || banner}
-                            alt="Profile Banner"
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                            <p className="text-gray-400">No banner image</p>
+        <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+            <DialogContent className="max-w-5xl overflow-hidden border border-dsb-neutral3/30 bg-white/95 p-0 shadow-2xl dark:border-white/10 dark:bg-[#08090A]">
+                {loading ? (
+                    <div className="flex min-h-[420px] items-center justify-center gap-3 py-16 text-dsb-neutral2 dark:text-white/70">
+                        <Loader2 className="h-5 w-5 animate-spin text-dsb-accent" />
+                        Loading profile...
+                    </div>
+                ) : (
+                    <form onSubmit={handleSave} className="flex max-h-[85vh] flex-col">
+                        <div className="flex flex-col gap-2 border-b border-dsb-neutral3/30 bg-white/80 px-6 py-5 dark:border-white/10 dark:bg-white/5">
+                            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Edit profile</h2>
+                            <p className="text-sm text-dsb-neutral2 dark:text-white/60">
+                                Update your public information so the community sees the best version of you.
+                            </p>
                         </div>
-                    )}
 
-                    <div className="absolute bottom-4 right-4 flex space-x-2">
-                        <label
-                            htmlFor="banner-upload"
-                            className="p-2 bg-blue-600 hover:bg-blue-700 rounded-full cursor-pointer transition-all"
-                        >
-                            <Camera className="h-5 w-5 text-white" />
-                            <input
-                                id="banner-upload"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleBannerChange}
-                                className="hidden"
-                            />
-                        </label>
-
-                        <button
-                            type="button"
-                            onClick={handleDeleteBanner}
-                            className="p-2 bg-red-500 hover:bg-red-600 rounded-full cursor-pointer transition-all"
-                        >
-                            <Trash2 className="h-5 w-5 text-white" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Avatar Section */}
-                <div className="flex flex-col items-center gap-4 mb-8">
-                    <div className="relative w-32 h-32 mb-2">
-                        <img
-                            src={avatarPreview || avatar || DEFAULT_AVATAR}
-                            alt="Avatar Preview"
-                            className="w-full h-full rounded-full object-cover border-4 border-blue-400 shadow-lg bg-gray-800"
-                        />
-                        
-                        <div className="absolute bottom-0 right-0 flex space-x-1">
-                            <button
-                                type="button"
-                                onClick={() => setShowAvatarModal(true)}
-                                className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded-full cursor-pointer transition-all"
-                            >
-                                <Grid className="h-4 w-4 text-white" />
-                            </button>
-
-                            <label
-                                htmlFor="avatar-upload"
-                                className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded-full cursor-pointer transition-all"
-                            >
-                                <Camera className="h-4 w-4 text-white" />
-                                <input
-                                    id="avatar-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleAvatarChange}
-                                    className="hidden"
-                                />
-                            </label>
-
-                            <button
-                                type="button"
-                                onClick={handleDeleteAvatar}
-                                className="p-1.5 bg-red-500 hover:bg-red-600 rounded-full cursor-pointer transition-all"
-                            >
-                                <Trash2 className="h-4 w-4 text-white" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-gray-300 mb-1 font-medium">First Name *</label>
-                        <Input
-                            value={firstName}
-                            onChange={e => setFirstName(e.target.value)}
-                            className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                            placeholder="First Name"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-gray-300 mb-1 font-medium">Last Name *</label>
-                        <Input
-                            value={lastName}
-                            onChange={e => setLastName(e.target.value)}
-                            className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                            placeholder="Last Name"
-                        />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="relative">
-                        <label className="block text-gray-300 mb-1 font-medium">Email Address</label>
-                        <div className="flex">
-                            <Input
-                                value={email}
-                                onChange={e => {
-                                    setEmail(e.target.value);
-                                    setEmailVerified(false);
-                                }}
-                                className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                                placeholder="Email Address"
-                                type="email"
-                            />
-                            {emailVerified ? (
-                                <div className="ml-2 flex items-center text-green-400">
-                                    <Check className="h-5 w-5" />
+                        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+                            {error && (
+                                <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-600 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200">
+                                    <AlertCircle className="mt-0.5 h-5 w-5" />
+                                    <p>{error}</p>
                                 </div>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    onClick={() => handleSendVerificationCode("email")}
-                                    disabled={verifyingEmail || !email}
-                                    className="ml-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    {verifyingEmail ? "Sending..." : "Verify"}
-                                </Button>
                             )}
-                        </div>
-                        {!emailVerified && email && (
-                            <p className="text-xs text-gray-400 mt-1">Please verify your email address</p>
-                        )}
-                    </div>
 
-                    <div className="relative">
-                        <label className="block text-gray-300 mb-1 font-medium">Phone Number</label>
-                        <div className="flex">
-                            <Input
-                                value={phone}
-                                onChange={e => {
-                                    setPhone(e.target.value);
-                                    setPhoneVerified(false);
-                                }}
-                                className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                                placeholder="Phone Number"
-                                type="tel"
-                            />
-                            {phoneVerified ? (
-                                <div className="ml-2 flex items-center text-green-400">
-                                    <Check className="h-5 w-5" />
+                            {success && (
+                                <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                    <Check className="mt-0.5 h-5 w-5" />
+                                    <p>{success}</p>
                                 </div>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    onClick={() => handleSendVerificationCode("phone")}
-                                    disabled={verifyingPhone || !phone}
-                                    className="ml-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    {verifyingPhone ? "Sending..." : "Verify"}
-                                </Button>
                             )}
-                        </div>
-                        {!phoneVerified && phone && (
-                            <p className="text-xs text-gray-400 mt-1">Please verify your phone number</p>
-                        )}
-                    </div>
-                </div>
 
-                <div>
-                    <label className="block text-gray-300 mb-1 font-medium">Profession</label>
-                    <Input
-                        value={profession}
-                        onChange={e => setProfession(e.target.value)}
-                        className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                        placeholder="e.g. Software Engineer, Data Scientist"
-                    />
-                </div>
+                            <section className="space-y-3">
+                                <div>
+                                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-white">Cover image</p>
+                                    <p className="text-xs text-dsb-neutral2 dark:text-white/60">Use a 1600 × 400px image for best results.</p>
+                                </div>
+                                <div className="relative overflow-hidden rounded-2xl border border-dsb-neutral3/30 bg-slate-100/60 dark:border-white/10 dark:bg-white/5">
+                                    {banner !== DEFAULT_BANNER || bannerPreview ? (
+                                        <img src={bannerPreview || banner} alt="Profile banner" className="h-48 w-full object-cover md:h-56 lg:h-64" />
+                                    ) : (
+                                        <div className="flex h-48 w-full items-center justify-center text-sm text-dsb-neutral2 dark:text-white/50 md:h-56 lg:h-64">
+                                            Add a cover image to personalise your profile.
+                                        </div>
+                                    )}
+                                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent dark:from-black/40" />
+                                    <div className="absolute bottom-4 right-4 flex flex-wrap gap-2">
+                                        <label
+                                            htmlFor="banner-upload"
+                                            className="inline-flex items-center gap-2 rounded-full border border-dsb-neutral3/40 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-dsb-accent hover:text-dsb-accent dark:border-white/10 dark:bg-white/10 dark:text-white"
+                                        >
+                                            <Camera className="h-4 w-4" />
+                                            Upload
+                                            <input id="banner-upload" type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleDeleteBanner}
+                                            className="border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-400/30 dark:text-red-200 dark:hover:bg-red-500/10"
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Remove
+                                        </Button>
+                                    </div>
+                                </div>
+                            </section>
 
-                <div>
-                    <label className="block text-gray-300 mb-1 font-medium">Company / Institution</label>
-                    <Input
-                        value={company}
-                        onChange={e => setCompany(e.target.value)}
-                        className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-gray-400"
-                        placeholder="e.g. Google, MIT"
-                    />
-                </div>
+                            <section className="grid gap-6 rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-5 dark:border-white/10 dark:bg-white/5 md:grid-cols-[auto,1fr]">
+                                <div className="relative mx-auto flex flex-col items-center">
+                                    <img
+                                        src={avatarPreview || avatar || DEFAULT_AVATAR}
+                                        alt="Avatar preview"
+                                        className="size-28 rounded-2xl border-4 border-white object-cover shadow-xl dark:border-slate-800 md:size-32"
+                                    />
+                                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setShowAvatarModal(true)}
+                                            className="border-dsb-neutral3/40 bg-white px-4 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+                                        >
+                                            Avatar styles
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleRegenerateAvatar}
+                                            className="border-dsb-neutral3/40 bg-white px-4 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+                                        >
+                                            Randomise
+                                        </Button>
+                                        <label
+                                            htmlFor="avatar-upload"
+                                            className="inline-flex items-center gap-2 rounded-full border border-dsb-neutral3/40 bg-dsb-accent px-4 py-2 text-sm font-semibold text-black shadow-sm transition hover:bg-dsb-accent/90"
+                                        >
+                                            <Camera className="h-4 w-4" />
+                                            Upload
+                                            <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleDeleteAvatar}
+                                            className="border-red-200 px-4 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-400/30 dark:text-red-200 dark:hover:bg-red-500/10"
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Reset
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="space-y-3 text-sm text-dsb-neutral2 dark:text-white/60">
+                                    <p>Upload a crisp headshot or pick a generated avatar. Square images work best.</p>
+                                    <ul className="space-y-2 text-xs leading-relaxed">
+                                        <li>• Max file size 2MB for avatar and 5MB for cover.</li>
+                                        <li>• Supported formats: JPG, PNG, SVG.</li>
+                                        <li>• Crop tools help you fine-tune framing before saving.</li>
+                                    </ul>
+                                </div>
+                            </section>
 
-                <div className="flex items-center gap-2 mt-2">
-                    <input
-                        type="checkbox"
-                        checked={showPhone}
-                        onChange={e => setShowPhone(e.target.checked)}
-                        className="accent-blue-600 w-4 h-4 rounded focus:ring-blue-500 border-gray-600 bg-gray-800"
-                        id="showPhone"
-                    />
-                    <label htmlFor="showPhone" className="text-gray-400 text-sm">
-                        Make my phone number visible to other users
-                    </label>
-                </div>
+                            <section className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">First name *</label>
+                                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} placeholder="First name" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Last name *</label>
+                                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} placeholder="Last name" />
+                                </div>
+                            </section>
 
-                {/* Verification code input */}
-                {showVerificationInput && (
-                    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <h3 className="text-lg font-medium text-white mb-4">Verification</h3>
-                        <p className="text-sm text-gray-300 mb-4">
-                            {verificationSent
-                                ? `A verification code has been sent to your ${verifyingEmail ? "email" : "phone"}. Please enter it below:`
-                                : "Please enter the verification code:"}
-                        </p>
-                        <div className="flex">
-                            <input
-                                type="text"
-                                value={verificationCode}
-                                onChange={(e) => setVerificationCode(e.target.value)}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter verification code"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => handleVerifyCode(verifyingEmail ? "email" : "phone")}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700"
-                            >
-                                Verify
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Save button */}
-                <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                    >
-                        {saving ? (
-                            <>
-                                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="h-5 w-5 mr-2" />
-                                Save Profile
-                            </>
-                        )}
-                    </button>
-                </div>
-            </form>
-
-            {/* Avatar Generator Modal */}
-            {showAvatarModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-70 flex items-center justify-center p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-2xl w-full p-6 border border-gray-700">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-white">Choose Avatar Style</h3>
-                            <button onClick={() => setShowAvatarModal(false)} className="text-gray-400 hover:text-gray-200">
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                            {diceBearStyles.map((style) => (
-                                <button
-                                    key={style.name}
-                                    onClick={() => handleSelectDiceBearAvatar(style.name)}
-                                    className={`p-2 rounded-lg border-2 ${
-                                        selectedStyle === style.name
-                                            ? "border-blue-500 bg-gray-700"
-                                            : "border-gray-700 hover:border-gray-600"
-                                    }`}
-                                >
-                                    <div className="aspect-square flex items-center justify-center">
-                                        {generatedAvatars[style.name] && generatedAvatars[style.name][0] ? (
-                                            <img
-                                                src={generatedAvatars[style.name][0].dataUrl || "/placeholder.svg"}
-                                                alt={style.name}
-                                                className="w-full h-full object-contain"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                                                <p className="text-gray-400">Loading...</p>
+                            <section className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Email address</label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={email}
+                                            onChange={(e) => {
+                                                setEmail(e.target.value);
+                                                setEmailVerified(false);
+                                            }}
+                                            className={inputClass}
+                                            placeholder="Email address"
+                                            type="email"
+                                        />
+                                        {emailVerified ? (
+                                            <div className="flex h-11 items-center rounded-full bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                                <Check className="mr-1 h-4 w-4" />
+                                                Verified
                                             </div>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => handleSendVerificationCode("email")}
+                                                disabled={verifyingEmail || !email}
+                                                className="h-11 border-dsb-accent px-4 text-sm font-semibold text-dsb-accent hover:bg-dsb-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {verifyingEmail ? "Sending..." : "Verify"}
+                                            </Button>
                                         )}
                                     </div>
-                                    <p className="text-center mt-2 text-sm font-medium capitalize text-white">{style.name}</p>
-                                </button>
-                            ))}
-                        </div>
+                                    {!emailVerified && email && (
+                                        <p className="text-xs text-dsb-neutral2 dark:text-white/50">We’ll send a code to confirm ownership.</p>
+                                    )}
+                                </div>
 
-                        <div className="flex flex-col items-center gap-3">
-                            <button
-                                onClick={handleRegenerateAvatar}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                            >
-                                Regenerate Avatar
-                            </button>
-                            <button
-                                onClick={() => setShowAllAvatarsModal(true)}
-                                className="w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
-                            >
-                                Gallery
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Phone number</label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={phone}
+                                            onChange={(e) => {
+                                                setPhone(e.target.value);
+                                                setPhoneVerified(false);
+                                            }}
+                                            className={inputClass}
+                                            placeholder="Phone number"
+                                            type="tel"
+                                        />
+                                        {phoneVerified ? (
+                                            <div className="flex h-11 items-center rounded-full bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                                <Check className="mr-1 h-4 w-4" />
+                                                Verified
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => handleSendVerificationCode("phone")}
+                                                disabled={verifyingPhone || !phone}
+                                                className="h-11 border-dsb-accent px-4 text-sm font-semibold text-dsb-accent hover:bg-dsb-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {verifyingPhone ? "Sending..." : "Verify"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                    {!phoneVerified && phone && (
+                                        <p className="text-xs text-dsb-neutral2 dark:text-white/50">Keep your number private by toggling visibility below.</p>
+                                    )}
+                                </div>
+                            </section>
 
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* All Avatars Gallery Modal */}
-            {showAllAvatarsModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-70 flex items-center justify-center p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-4xl w-full p-6 border border-gray-700 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-white">Avatar Gallery - {selectedStyle}</h3>
-                            <button onClick={() => setShowAllAvatarsModal(false)} className="text-gray-400 hover:text-gray-200">
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-5 gap-4 mb-6">
-                            {generatedAvatars[selectedStyle]?.map((avatarData, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleSelectSpecificAvatar(selectedStyle, avatarData)}
-                                    className="aspect-square p-2 rounded-lg border border-gray-700 hover:border-blue-500 transition-all"
-                                >
-                                    <img
-                                        src={avatarData.dataUrl}
-                                        alt={`Avatar ${index + 1}`}
-                                        className="w-full h-full object-contain rounded"
+                            <section className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Profession</label>
+                                    <Input
+                                        value={profession}
+                                        onChange={(e) => setProfession(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="e.g. Product Analyst"
                                     />
-                                </button>
-                            ))}
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Company / Institution</label>
+                                    <Input
+                                        value={company}
+                                        onChange={(e) => setCompany(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="e.g. Datasense AI"
+                                    />
+                                </div>
+                            </section>
+
+                            <div className="flex items-center gap-3 rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-4 text-sm text-dsb-neutral2 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                                <input
+                                    type="checkbox"
+                                    checked={showPhone}
+                                    onChange={(e) => setShowPhone(e.target.checked)}
+                                    id="showPhone"
+                                    className="size-4 rounded border border-dsb-neutral3/50 text-dsb-accent focus:ring-dsb-accent dark:border-white/20 dark:bg-transparent"
+                                />
+                                <label htmlFor="showPhone" className="cursor-pointer">
+                                    Make my phone number visible to other users.
+                                </label>
+                            </div>
+
+                            {showVerificationInput && (
+                                <div className="space-y-3 rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-5 text-sm text-dsb-neutral2 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                                    <div>
+                                        <h3 className="text-base font-semibold text-slate-900 dark:text-white">Verify {verifyingEmail ? "email" : "phone"}</h3>
+                                        <p className="text-xs text-dsb-neutral2 dark:text-white/60">
+                                            {verificationSent
+                                                ? `We’ve sent a code to your ${verifyingEmail ? "email" : "phone"}. Enter it below to confirm.`
+                                                : "Enter the verification code to complete confirmation."}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                        <input
+                                            type="text"
+                                            value={verificationCode}
+                                            onChange={(e) => setVerificationCode(e.target.value)}
+                                            className="h-11 flex-1 rounded-xl border border-dsb-neutral3/40 bg-white/90 px-4 text-base text-slate-900 focus:border-dsb-accent focus:outline-none focus:ring-0 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                            placeholder="Enter verification code"
+                                        />
+                                        <Button
+                                            type="button"
+                                            onClick={() => handleVerifyCode(verifyingEmail ? "email" : "phone")}
+                                            className="h-11 bg-dsb-accent px-6 text-sm font-semibold text-black hover:bg-dsb-accent/90"
+                                        >
+                                            Verify code
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="flex justify-center">
-                            <button
-                                onClick={() => handleGenerateMoreAvatars(selectedStyle)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                            >
-                                Generate More Avatars
-                            </button>
+                        <div className="flex flex-col gap-3 border-t border-dsb-neutral3/30 bg-white/80 px-6 py-4 dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
+                            <span className="text-xs text-dsb-neutral2 dark:text-white/60">
+                                {isChanged ? "Unsaved changes" : "Profile is up to date"}
+                            </span>
+                            <div className="flex flex-wrap gap-3 md:justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={closeDialog}
+                                    className="border-dsb-neutral3/40 bg-white px-6 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/20 dark:bg-white/10 dark:text-white/70"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={saving || !isChanged}
+                                    className="bg-dsb-accent px-6 py-2 text-sm font-semibold text-black hover:bg-dsb-accent/90 disabled:opacity-50"
+                                >
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="mr-2 h-4 w-4" />
+                                            Save changes
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
+                    </form>
+                )}
+            </DialogContent>
+
+            <Dialog open={showAvatarModal} onOpenChange={setShowAvatarModal}>
+                <DialogContent className="max-w-2xl border border-dsb-neutral3/30 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#08090A]">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Choose avatar style</h3>
                     </div>
-                </div>
-            )}
-
-            {/* Image Crop Modal */}
-            {showCropModal && cropImage && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-70 flex items-center justify-center p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-2xl w-full p-6 border border-gray-700">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-white">
-                                Crop {isCroppingAvatar ? "Avatar" : "Banner"}
-                            </h3>
-                            <button onClick={handleCancelCrop} className="text-gray-400 hover:text-gray-200">
-                                <X className="h-6 w-6" />
+                    <div className="mt-5 grid grid-cols-3 gap-4">
+                        {diceBearStyles.map((style) => (
+                            <button
+                                key={style.name}
+                                onClick={() => handleSelectDiceBearAvatar(style.name)}
+                                className={`rounded-2xl border-2 p-3 transition ${
+                                    selectedStyle === style.name
+                                        ? "border-dsb-accent bg-dsb-accent/10"
+                                        : "border-dsb-neutral3/30 hover:border-dsb-accent/60 dark:border-white/10"
+                                }`}
+                            >
+                                <div className="aspect-square overflow-hidden rounded-xl bg-white/80 p-4 dark:bg-white/5">
+                                    {generatedAvatars[style.name]?.[0] ? (
+                                        <img src={generatedAvatars[style.name][0].dataUrl} alt={style.name} className="h-full w-full object-contain" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-xs text-dsb-neutral2 dark:text-white/60">
+                                            Loading...
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="mt-2 text-center text-sm font-semibold capitalize text-slate-900 dark:text-white">
+                                    {style.name.replace("-", " ")}
+                                </p>
                             </button>
-                        </div>
+                        ))}
+                    </div>
+                    <div className="mt-6 flex flex-col gap-2">
+                        <Button onClick={handleRegenerateAvatar} className="bg-dsb-accent px-4 py-2 text-sm font-semibold text-black hover:bg-dsb-accent/90">
+                            Regenerate avatar
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowAllAvatarsModal(true)}
+                            className="border-dsb-neutral3/40 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+                        >
+                            Browse gallery
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-                        <div className="mb-6">
+            <Dialog open={showAllAvatarsModal} onOpenChange={setShowAllAvatarsModal}>
+                <DialogContent className="max-w-4xl border border-dsb-neutral3/30 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#08090A]">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Avatar gallery — {selectedStyle}</h3>
+                    <div className="mt-5 grid max-h-[60vh] grid-cols-2 gap-4 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">
+                        {generatedAvatars[selectedStyle]?.map((avatarData, index) => (
+                            <button
+                                key={`${avatarData.seed}-${index}`}
+                                onClick={() => handleSelectSpecificAvatar(selectedStyle, avatarData)}
+                                className="aspect-square rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-3 transition hover:border-dsb-accent dark:border-white/10 dark:bg-white/5"
+                            >
+                                <img src={avatarData.dataUrl} alt={`Avatar ${index + 1}`} className="h-full w-full object-contain" />
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mt-6 flex justify-center">
+                        <Button onClick={() => handleGenerateMoreAvatars(selectedStyle)} className="bg-dsb-accent px-5 py-2 text-sm font-semibold text-black hover:bg-dsb-accent/90">
+                            Generate more avatars
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCropModal && Boolean(cropImage)} onOpenChange={(open) => (!open ? handleCancelCrop() : setShowCropModal(true))}>
+                <DialogContent className="max-w-2xl border border-dsb-neutral3/30 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#08090A]">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        Crop {isCroppingAvatar ? "avatar" : "cover"}
+                    </h3>
+                    {cropImage && (
+                        <div className="mt-6">
                             <ReactCrop
                                 crop={crop}
                                 onChange={(c) => setCrop(c)}
@@ -1000,25 +991,27 @@ const ProfileEdit: React.FC = () => {
                                 />
                             </ReactCrop>
                         </div>
-
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                onClick={handleCancelCrop}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleApplyCrop}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                            >
-                                Apply Crop
-                            </button>
-                        </div>
+                    )}
+                    <div className="mt-6 flex justify-end gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelCrop}
+                            className="border-dsb-neutral3/40 bg-white px-5 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleApplyCrop}
+                            className="bg-dsb-accent px-6 py-2 text-sm font-semibold text-black hover:bg-dsb-accent/90"
+                        >
+                            Apply crop
+                        </Button>
                     </div>
-                </div>
-            )}
-        </div>
+                </DialogContent>
+            </Dialog>
+        </Dialog>
     );
 };
 
