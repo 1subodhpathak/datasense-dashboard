@@ -166,7 +166,7 @@ const SqlJourney = () => {
           }}
         />
         {/* <GridBackground /> */}
-        <ThreeBackground />
+        {/* <ThreeBackground /> */}
         {/* <Starfield /> */}
       </div>
 

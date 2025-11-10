@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -39,6 +41,15 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 171 100% 42%;
     /* Changed to teal hue */
+
+    /* Dashboard surfaces */
+    --surface: #f8fafc;
+    --surface-muted: #e2e8f0;
+    --surface-strong: rgba(15, 23, 42, 0.05);
+    --card-surface: rgba(255, 255, 255, 0.92);
+    --card-border: rgba(15, 23, 42, 0.08);
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
   }
 
   .dark {
@@ -76,11 +87,33 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 171 100% 42%;
     /* Changed to teal hue */
+
+    --surface: #050608;
+    --surface-muted: rgba(15, 23, 42, 0.55);
+    --surface-strong: rgba(148, 163, 184, 0.08);
+    /* --card-surface: rgba(15, 23, 42, 0.75); */
+    --card-surface: #08090A;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text-primary: #e2e8f0;
+    --text-secondary: #cbd5f5;
   }
 
   body {
-    background-color: black;
-    /* Adding explicit black background */
+    background-color: var(--surface);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "sans-serif", "Inter", "Segoe UI", sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
   }
 }
 
@@ -108,11 +141,17 @@
 
   /* Neo glass effects */
   .neo-glass {
-    @apply bg-black/30 backdrop-blur-md border border-white/10;
+    @apply backdrop-blur-md border transition-colors duration-300 ease-out;
+    background-color: var(--card-surface);
+    border-color: var(--card-border);
   }
 
   .neo-glass-dark {
-    @apply bg-black/40 backdrop-blur-md border border-white/5;
+    @apply backdrop-blur-md border transition-colors duration-300 ease-out;
+    background-color: var(--card-surface);
+    border-color: var(--card-border);
+    /* @apply bg-black/40 backdrop-blur-md border border-white/5; */
+
   }
 
   .glow-text {
@@ -173,6 +212,53 @@
     background: rgba(0, 226, 202, 0.5);
     border-radius: 50%;
     animation: float-particle 10s ease-in-out forwards;
+  }
+
+  /* Light theme overrides for legacy dark styles */
+  :root:not(.dark) .text-white {
+    color: var(--text-primary) !important;
+  }
+
+  :root:not(.dark) .text-white\/70 {
+    color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
+  }
+
+  :root:not(.dark) .text-dsb-neutral1 {
+    color: var(--text-secondary) !important;
+  }
+
+  :root:not(.dark) .text-dsb-neutral2 {
+    color: #1f2937 !important;
+  }
+
+  :root:not(.dark) .text-dsb-neutral3 {
+    color: #334155 !important;
+  }
+
+  :root:not(.dark) .bg-black\/30 {
+    background-color: rgba(15, 23, 42, 0.08) !important;
+  }
+
+  :root:not(.dark) .bg-black\/40 {
+    background-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  :root:not(.dark) .bg-black\/60 {
+    background-color: rgba(15, 23, 42, 0.18) !important;
+  }
+
+  :root:not(.dark) .bg-black {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+  }
+
+  :root:not(.dark) .bg-\[\#1f4041\] {
+    background-color: var(--surface-muted) !important;
+  }
+
+  :root:not(.dark) .text-glow,
+  :root:not(.dark) .glow-text-subtle {
+    text-shadow: none;
   }
 
   /* Card styles */

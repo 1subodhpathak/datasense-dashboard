@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import OverviewTab from "@/components/dashboard/tabs/OverviewTab";
 import BadgesTab from "@/components/dashboard/tabs/BadgesTab";
 import ChallengesTab from "@/components/dashboard/tabs/ChallengesTab";
@@ -298,22 +297,29 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="relative z-10">
-        {/* Profile Header with Avatar */}
-        <DashboardHeader />
+      <div className="relative z-10 space-y-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Battleground</h1>
+          <p className="text-slate-600 dark:text-slate-300">
+            Review matches, track performance, and jump back into the arena.
+          </p>
+        </div>
 
-        <div className="mt-2">
-          <div className="flex justify-between items-center">
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
             <Link to="https://battleground.datasenseai.com/start">
-              <button onClick={handleButtonClick} className="text-dsb-accent font-semibold bg-black hover:bg-dsb-accent hover:text-black border-0 px-4 py-2 rounded-lg">
+              <button
+                onClick={handleButtonClick}
+                className="rounded-full bg-[#008B8B] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#007a7a]"
+              >
                 Game
               </button>
             </Link>
           </div>
 
           {/* Render the active tab */}
-          <div className="mt-1 w-full">
+          <div className="mt-4 w-full">
             {activeTab === "overview" && (
               <OverviewTab
                 stats={stats}

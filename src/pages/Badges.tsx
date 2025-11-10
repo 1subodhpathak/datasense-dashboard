@@ -182,12 +182,12 @@ const BadgesPage = () => {
       <div className="p-6 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2 glow-text">
+            {/* <h1 className="text-3xl font-bold text-white mb-2 glow-text">
               Your Badges and Achievements
             </h1>
             <p className="text-dsb-neutral1 text-sm">
               Progress: {totalStats?.achievedBadges || 0}/{totalStats?.totalBadges || 0} completed
-            </p>
+            </p> */}
           </div>
         </div>
 

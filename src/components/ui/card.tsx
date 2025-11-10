@@ -6,22 +6,22 @@ import { cn } from "@/lib/utils"
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border border-[#333333] bg-black/30 text-card-foreground shadow-[0_4px_12px_rgba(0,0,0,0.2)] backdrop-blur-md hover:shadow-[0_8px_16px_rgba(0,0,0,0.25)] transition-shadow duration-300 relative overflow-hidden group",
+      "rounded-lg bg-black/30 text-card-foreground shadow-[0_4px_12px_rgba(0,0,0,0.2)] backdrop-blur-md transition-shadow duration-300 relative overflow-hidden group",
       className
     )}
     {...props}
   >
     {/* Glassmorphism inner highlight */}
-    <div className="absolute inset-0 bg-gradient-to-br from-dsb-accent/5 to-transparent opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-    
+    <div className="absolute inset-0 bg-gradient-to-br from-dsb-accent/5 to-transparent opacity-0  transition-opacity duration-300" />
     {/* Shine effect - animated line that moves across */}
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute -left-[100%] top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-dsb-accent/10 to-transparent transform group-hover:translate-x-[300%] transition-transform duration-1500 ease-in-out"></div>
+      <div className="absolute -left-[100%] top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-dsb-accent/10 to-transparent transform  transition-transform duration-1500 ease-in-out" />
     </div>
+    <div className="relative z-10 h-full w-full">{children}</div>
   </div>
 ))
 Card.displayName = "Card"
