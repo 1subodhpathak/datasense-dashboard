@@ -121,6 +121,7 @@ const MainDashboard = () => {
     rank: 0,
   });
   const [liveQuizProgress, setLiveQuizProgress] = useState({ completed: 0, total: 0, percentage: 0 });
+  const [solvedQuestions, setSolvedQuestions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -150,13 +151,15 @@ const MainDashboard = () => {
         const customTestPromise = axios.get(`https://server.datasenseai.com/custom-test/submissions/${user.id}`);
         const battlegroundPromise = fetch(`https://server.datasenseai.com/battleground-leaderboard/user-data/${user.id}`);
         const allQuizzesPromise = axios.get(`https://server.datasenseai.com/quiz/quizzes`);
+        const solvedQuestionsPromise = fetch(`https://server.datasenseai.com/question-attempt/solved/${user.id}`);
 
-        const [practiceResponse, streakResponse, customTestResponse, battlegroundResponse, allQuizzesResponse] = await Promise.allSettled([
+        const [practiceResponse, streakResponse, customTestResponse, battlegroundResponse, allQuizzesResponse, solvedQuestionsResponse] = await Promise.allSettled([
           practicePromise,
           streakPromise,
           customTestPromise,
           battlegroundPromise,
           allQuizzesPromise,
+          solvedQuestionsPromise,
         ]);
 
         // Process practice dashboard data
@@ -332,6 +335,23 @@ const MainDashboard = () => {
         } else {
           setLiveQuizProgress({ completed: 0, total: 0, percentage: 0 });
         }
+
+        // Process solved questions for progress calculation (same as QuestionGallery.jsx)
+        if (solvedQuestionsResponse.status === "fulfilled" && solvedQuestionsResponse.value.ok) {
+          try {
+            const solvedData = await solvedQuestionsResponse.value.json();
+            const solvedArray: string[] = (solvedData.solvedQuestions || [])
+              .filter((item: any) => item !== null)
+              .map((item: any) => String(item));
+            const solvedSet: Set<string> = new Set<string>(solvedArray);
+            setSolvedQuestions(solvedSet);
+          } catch (parseError) {
+            console.error("Error parsing solved questions data:", parseError);
+            setSolvedQuestions(new Set<string>());
+          }
+        } else {
+          setSolvedQuestions(new Set<string>());
+        }
       } catch (error) {
         console.error("Failed to load dashboard data", error);
         setPracticeData({
@@ -358,6 +378,7 @@ const MainDashboard = () => {
           rank: 0,
         });
         setLiveQuizProgress({ completed: 0, total: 0, percentage: 0 });
+        setSolvedQuestions(new Set<string>());
       } finally {
         setLoading(false);
       }
@@ -366,9 +387,10 @@ const MainDashboard = () => {
     bootstrap();
   }, [isLoaded, isSignedIn, user]);
 
-  const solvedCount = practiceData?.solved?.length || 0;
-  const totalQuestions = practiceData?.totalQuestions || 0;
-  const completionRate = totalQuestions > 0 ? Math.round((solvedCount / totalQuestions) * 100) : 0;
+  // Calculate progress the same way as QuestionGallery.jsx
+  const solvedCount = Array.from(solvedQuestions).length;
+  const TOTAL_QUESTIONS = 500; // Based on the "500 Problems" text in the UI (same as QuestionGallery.jsx)
+  const completionRate = Math.floor((solvedCount / TOTAL_QUESTIONS) * 100);
 
   const streakHighlights = useMemo(() => {
     if (!streakData?.subjectStreaks) return [];
@@ -470,10 +492,15 @@ const MainDashboard = () => {
                 Monitor every win, streak, and milestone in one place. Stay on pace with personalised insights and jump back into practice whenever you're ready.
               </p>
               <Link to="https://practice.datasenseai.com/practice-area?subject=sql" target="_blank" className="flex-shrink-0">
-                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
-                    Continue practice
-                  </Button>
-                </Link>
+                <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                  Continue practice
+                </Button>
+              </Link>
+              <Link to="#" className="flex-shrink-0">
+                <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                  Continue Learning
+                </Button>
+              </Link>
               </div>
               {/* <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-5 text-white/90 text-base">
                 <div className="flex items-center gap-2">
