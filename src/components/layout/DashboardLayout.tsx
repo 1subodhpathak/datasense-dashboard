@@ -1,10 +1,9 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
+import Navbar from "@/components/Navbar";
 import { useTheme } from "@/lib/theme-context";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
-import { Button } from "@/components/ui/button";
-import { Moon, Sun } from "lucide-react";
+import { useSidebar } from "@/lib/sidebar-context";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,6 +27,7 @@ const ROUTE_TITLES: Record<string, string> = {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { isCollapsed } = useSidebar();
 
   const pageTitle = useMemo(() => {
     const path = location.pathname.toLowerCase();
@@ -44,49 +44,37 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isDark = theme === "dark";
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-white text-slate-900 transition-colors duration-300 dark:bg-[#0d0f10] dark:text-slate-100">
-      <Sidebar />
-      <div className="ml-64 flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between bg-[#008B8B] px-6 text-white">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-50 leading-none">
-            {pageTitle}
-          </h1>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="h-10 w-10 rounded-full border border-white/20 text-white hover:bg-white/15"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            <SignedIn>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-10 h-10 border border-white/40 bg-[#006f6f]",
-                    userButtonPopoverCard: "bg-white dark:bg-slate-900 border border-white/20 dark:border-slate-700",
-                  },
-                }}
-              />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button className="rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/15" variant="ghost">
-                  Sign In
-                </Button>
-              </SignInButton>
-            </SignedOut>
-          </div>
-        </header>
+    <div className={`flex min-h-screen w-full flex-col overflow-hidden transition-colors duration-300 font-sans ${
+      isDark ? "bg-[#1D1E23] text-gray-100" : "bg-gray-100 text-gray-900"
+    }`}>
+      <Navbar />
+      <div className="flex w-full flex-1 pt-16">
+        <Sidebar />
+        <div className={`flex min-h-[calc(100vh-4rem)] flex-1 flex-col transition-all duration-300 ${
+          isCollapsed ? "ml-16" : "ml-64"
+        }`}>
+          {/* <header className={`sticky top-16 z-30 flex h-20 items-center justify-between px-6 transition-colors duration-300 ${
+            isDark ? "text-white" : " text-gray-900"
+          }`}>
+            <h1 className={`text-3xl font-bold tracking-tight leading-none ${
+              isDark ? "text-white" : "text-gray-900"
+            }`}>
+              {pageTitle}
+            </h1>
+          </header> */}
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl px-6 py-6 md:px-8 md:py-8">
-            {children}
-          </div>
-        </main>
+          <main className={`flex-1 overflow-y-auto ${
+            location.pathname === "/sql-journey" 
+              ? "bg-[#1D1E23]" 
+              : isDark ? "bg-[#1D1E23]" : "bg-gray-100"
+          }`}>
+            <div className={`mx-auto w-full max-w-7xl px-6 py-6 md:px-8 md:py-8 ${
+              location.pathname === "/sql-journey" ? "!bg-[#1D1E23] !text-gray-100" : ""
+            }`}>
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

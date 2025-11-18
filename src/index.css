@@ -6,96 +6,101 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    /* Pure black */
-    --foreground: 224 71.4% 4.1%;
+    --background: 0 0% 96%;
+    /* gray-100 */
+    --foreground: 222 47% 11%;
+    /* gray-900 */
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 171 100% 42%;
-    /* Changed to teal hue */
-    --primary-foreground: 210 20% 98%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 188 94% 43%;
+    /* Cyan-600 */
+    --primary-foreground: 0 0% 100%;
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 220.9 39.3% 11%;
     --muted: 220 14.3% 95.9%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
+    --accent: 188 94% 43%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 171 100% 42%;
-    /* Changed to teal hue */
+    /* gray-200 */
+    --input: 220 13% 96%;
+    /* gray-50 */
+    --ring: 188 94% 43%;
     --radius: 0.5rem;
 
     /* Sidebar Variables */
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 171 100% 42%;
-    /* Changed to teal hue */
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 171 100% 42%;
-    /* Changed to teal hue */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 222 47% 11%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 188 94% 43%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 188 94% 43%;
 
-    /* Dashboard surfaces */
-    --surface: #f8fafc;
-    --surface-muted: #e2e8f0;
-    --surface-strong: rgba(15, 23, 42, 0.05);
-    --card-surface: rgba(255, 255, 255, 0.92);
-    --card-border: rgba(15, 23, 42, 0.08);
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
+    /* Dashboard surfaces - matching QuestionGallery.jsx */
+    --surface: #f3f4f6;
+    /* gray-100 */
+    --surface-muted: #e5e7eb;
+    /* gray-200 */
+    --surface-strong: rgba(0, 0, 0, 0.05);
+    --card-surface: #ffffff;
+    --card-border: #e5e7eb;
+    /* gray-200 */
+    --text-primary: #111827;
+    /* gray-900 */
+    --text-secondary: #4b5563;
+    /* gray-600 */
   }
 
   .dark {
-    --background: 0 0% 0%;
-    /* Pure black */
+    --background: 29 30 35;
+    /* #1D1E23 */
     --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
+    --card: 50 54 60;
+    /* #32363C */
     --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
+    --popover: 50 54 60;
     --popover-foreground: 210 20% 98%;
-    --primary: 171 100% 42%;
-    /* Changed to teal hue */
+    --primary: 188 94% 43%;
+    /* Cyan-600 */
     --primary-foreground: 210 20% 98%;
-    --secondary: 215 27.9% 16.9%;
+    --secondary: 47 51 55;
+    /* #2f2f2f */
     --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
+    --muted: 47 51 55;
     --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
+    --accent: 188 94% 43%;
     --accent-foreground: 210 20% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 171 100% 42%;
-    /* Changed to teal hue */
+    --border: 63 63 63;
+    /* #3f3f3f */
+    --input: 47 51 55;
+    /* #2f2f2f */
+    --ring: 188 94% 43%;
 
     /* Sidebar Variables */
-    --sidebar-background: 217.2 32.6% 17.5%;
+    --sidebar-background: 50 54 60;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 171 100% 42%;
-    /* Changed to teal hue */
+    --sidebar-accent: 188 94% 43%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 171 100% 42%;
-    /* Changed to teal hue */
+    --sidebar-border: 63 63 63;
+    --sidebar-ring: 188 94% 43%;
 
-    --surface: #050608;
-    --surface-muted: rgba(15, 23, 42, 0.55);
-    --surface-strong: rgba(148, 163, 184, 0.08);
-    /* --card-surface: rgba(15, 23, 42, 0.75); */
-    --card-surface: #08090A;
-    --card-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #e2e8f0;
-    --text-secondary: #cbd5f5;
+    --surface: #1D1E23;
+    --surface-muted: #32363C;
+    --surface-strong: rgba(255, 255, 255, 0.05);
+    --card-surface: #32363C;
+    --card-border: #3f3f3f;
+    --text-primary: #f3f4f6;
+    --text-secondary: #d1d5db;
   }
 
   body {
@@ -219,6 +224,12 @@
     color: var(--text-primary) !important;
   }
 
+  /* Navbar should always have white text regardless of theme */
+  :root:not(.dark) .navbar-fixed-white .text-white,
+  :root:not(.dark) .navbar-fixed-white * .text-white {
+    color: white !important;
+  }
+
   :root:not(.dark) .text-white\/70 {
     color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
   }
@@ -259,6 +270,184 @@
   :root:not(.dark) .text-glow,
   :root:not(.dark) .glow-text-subtle {
     text-shadow: none;
+  }
+
+  /* Force dark theme for SqlJourney page - override all light theme styles */
+  .sql-journey-dark-theme {
+    background-color: #1D1E23 !important;
+    color: #f3f4f6 !important;
+  }
+
+  .sql-journey-dark-theme .text-white,
+  .sql-journey-dark-theme .text-white\/70,
+  .sql-journey-dark-theme .text-white\/80 {
+    color: white !important;
+  }
+
+  .sql-journey-dark-theme .text-gray-900,
+  .sql-journey-dark-theme .text-gray-800,
+  .sql-journey-dark-theme .text-gray-700 {
+    color: #f3f4f6 !important;
+  }
+
+  .sql-journey-dark-theme .text-gray-600,
+  .sql-journey-dark-theme .text-gray-500,
+  .sql-journey-dark-theme .text-gray-400 {
+    color: #d1d5db !important;
+  }
+
+  .sql-journey-dark-theme .bg-gray-100,
+  .sql-journey-dark-theme .bg-gray-50,
+  .sql-journey-dark-theme .bg-white {
+    background-color: #1D1E23 !important;
+  }
+
+  .sql-journey-dark-theme .bg-gray-200 {
+    background-color: #32363C !important;
+  }
+
+  .sql-journey-dark-theme .border-gray-200,
+  .sql-journey-dark-theme .border-gray-300 {
+    border-color: #3f3f3f !important;
+  }
+
+  .sql-journey-dark-theme .text-dsb-neutral1 {
+    color: #d1d5db !important;
+  }
+
+  .sql-journey-dark-theme .text-dsb-neutral2 {
+    color: #9ca3af !important;
+  }
+
+  .sql-journey-dark-theme .text-dsb-neutral3 {
+    color: #6b7280 !important;
+  }
+
+  .sql-journey-dark-theme .bg-dsb-neutral3 {
+    background-color: #3f3f3f !important;
+  }
+
+  .sql-journey-dark-theme .neo-glass-dark {
+    background-color: #32363C !important;
+    border-color: #3f3f3f !important;
+  }
+
+  /* Override any text colors that might be affected by light theme */
+  .sql-journey-dark-theme h1,
+  .sql-journey-dark-theme h2,
+  .sql-journey-dark-theme h3,
+  .sql-journey-dark-theme h4,
+  .sql-journey-dark-theme h5,
+  .sql-journey-dark-theme h6,
+  .sql-journey-dark-theme p,
+  .sql-journey-dark-theme span,
+  .sql-journey-dark-theme div {
+    color: inherit;
+  }
+
+  /* Ensure all backgrounds are dark */
+  .sql-journey-dark-theme .bg-transparent {
+    background-color: transparent !important;
+  }
+
+  /* Override any card or panel backgrounds */
+  .sql-journey-dark-theme [class*="bg-white"],
+  .sql-journey-dark-theme [class*="bg-gray-50"],
+  .sql-journey-dark-theme [class*="bg-gray-100"] {
+    background-color: #32363C !important;
+  }
+
+  /* Force progress bar background to dark (not completed area) */
+  .sql-journey-dark-theme [class*="bg-gray-200"],
+  .sql-journey-dark-theme .bg-gray-200,
+  .sql-journey-dark-theme [class*="bg-dsb-neutral3"] {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* Override progress component specifically - target the root element */
+  .sql-journey-dark-theme [role="progressbar"],
+  .sql-journey-dark-theme [data-radix-progress-root],
+  .sql-journey-dark-theme [data-radix-progress-root][class*="bg-gray-200"] {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* Override progress bar track (the background/not completed area) */
+  .sql-journey-dark-theme .relative[class*="bg-gray-200"],
+  .sql-journey-dark-theme .relative.overflow-hidden[class*="bg-gray-200"] {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* Ensure all text-dsb-accent stays visible */
+  .sql-journey-dark-theme .text-dsb-accent {
+    color: #00E2CA !important;
+  }
+
+  /* Override any font-medium, font-bold, font-semibold text colors */
+  .sql-journey-dark-theme .font-medium,
+  .sql-journey-dark-theme .font-bold,
+  .sql-journey-dark-theme .font-semibold {
+    color: inherit;
+  }
+
+  /* Ensure text-gray-100 stays light */
+  .sql-journey-dark-theme .text-gray-100 {
+    color: #f3f4f6 !important;
+  }
+
+  /* Override any remaining text color issues - ensure all text is visible */
+  .sql-journey-dark-theme .text-sm,
+  .sql-journey-dark-theme .text-base,
+  .sql-journey-dark-theme .text-lg,
+  .sql-journey-dark-theme .text-xl,
+  .sql-journey-dark-theme .text-2xl,
+  .sql-journey-dark-theme .text-3xl {
+    color: inherit;
+  }
+
+  /* Ensure glow-text-subtle works in light theme */
+  .sql-journey-dark-theme .glow-text-subtle {
+    text-shadow: 0 0 8px rgba(0, 226, 202, 0.4) !important;
+  }
+
+  /* Override any red text colors to stay visible */
+  .sql-journey-dark-theme .text-red-400,
+  .sql-journey-dark-theme .text-red-500 {
+    color: #f87171 !important;
+  }
+
+  /* Force ALL text-dsb-neutral1 to be light/white in light theme ONLY */
+  /* Used for: "Live Progress Tracking", stat box labels ("Milestones", "Badges", etc.), "Continue your journey" text */
+  :root:not(.dark) .sql-journey-dark-theme .text-dsb-neutral1,
+  :root:not(.dark) .sql-journey-dark-theme p.text-dsb-neutral1,
+  :root:not(.dark) .sql-journey-dark-theme span.text-dsb-neutral1 {
+    color: #d1d5db !important;
+  }
+
+  /* Force ALL text-white to stay white in light theme ONLY */
+  /* Used for: "SQL Learning Journey" title, "Overall Journey Progress", stat box values, node titles ("Query Explorer", etc.) */
+  :root:not(.dark) .sql-journey-dark-theme .text-white,
+  :root:not(.dark) .sql-journey-dark-theme h1.text-white,
+  :root:not(.dark) .sql-journey-dark-theme h2.text-white,
+  :root:not(.dark) .sql-journey-dark-theme h3.text-white,
+  :root:not(.dark) .sql-journey-dark-theme span.text-white,
+  :root:not(.dark) .sql-journey-dark-theme p.text-white {
+    color: white !important;
+  }
+
+  /* Force all headings (h1, h2, h3) to be white in light theme ONLY */
+  /* Used for: "SQL Learning Journey" title, "Keep Going!" heading */
+  :root:not(.dark) .sql-journey-dark-theme h1,
+  :root:not(.dark) .sql-journey-dark-theme h2,
+  :root:not(.dark) .sql-journey-dark-theme h3 {
+    color: white !important;
+  }
+
+  /* Force text-dsb-accent to stay visible in light theme ONLY */
+  /* Used for: progress percentage, "Keep Going!" heading, badge percentages */
+  :root:not(.dark) .sql-journey-dark-theme .text-dsb-accent,
+  :root:not(.dark) .sql-journey-dark-theme span.text-dsb-accent,
+  :root:not(.dark) .sql-journey-dark-theme h3.text-dsb-accent {
+    color: #00E2CA !important;
   }
 
   /* Card styles */
