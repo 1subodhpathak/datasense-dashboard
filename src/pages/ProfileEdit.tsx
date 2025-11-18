@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ProfileContext, type ProfileData as ContextProfileData } from "@/context/ProfileContext";
+import { ProfileContext, type ProfileData as ContextProfileData, type PortfolioRecord } from "@/context/ProfileContext";
 import { Trash2, Camera, Save, Loader2, X, AlertCircle, Check, Grid } from "lucide-react";
 import * as avataaars from "@dicebear/avataaars";
 import * as bottts from "@dicebear/bottts";
@@ -19,6 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 const DEFAULT_BANNER = "/placeholder.svg?height=400&width=1200";
 const API_ENDPOINT = "https://server.datasenseai.com/battleground-profile";
+// const API_ENDPOINT = "http://localhost:4000/battleground-profile";
 
 // DiceBear styles mapping
 const diceBearStyles = [
@@ -40,6 +41,10 @@ interface ProfileApiData {
     profession?: string;
     company?: string;
     showPhone?: boolean;
+    bio?: string;
+    skills?: unknown[];
+    credentials?: unknown[];
+    projects?: unknown[];
 }
 
 interface AvatarData {
@@ -49,11 +54,54 @@ interface AvatarData {
 
 // Get clerkId from context, localStorage, or props - replace with your auth solution
 
+const normalizeSkillsForContext = (skills?: unknown[]): string[] => {
+    if (!Array.isArray(skills)) return [];
+    return skills
+        .map((skill) => {
+            if (typeof skill === "string") {
+                const trimmed = skill.trim();
+                return trimmed.length > 0 ? trimmed : null;
+            }
+            if (skill && typeof skill === "object") {
+                const record = skill as Record<string, unknown>;
+                const candidate =
+                    (typeof record.title === "string" && record.title) ||
+                    (typeof record.name === "string" && record.name) ||
+                    (typeof record.label === "string" && record.label);
+                if (candidate) {
+                    const trimmedCandidate = candidate.trim();
+                    return trimmedCandidate.length > 0 ? trimmedCandidate : null;
+                }
+            }
+            return null;
+        })
+        .filter((value): value is string => Boolean(value));
+};
+
+const normalizeRecordsForContext = (entries?: unknown[]): PortfolioRecord[] => {
+    if (!Array.isArray(entries)) return [];
+    return entries
+        .map((entry) => {
+            if (entry && typeof entry === "object") return entry as PortfolioRecord;
+            if (typeof entry === "string") {
+                const trimmed = entry.trim();
+                return trimmed.length > 0 ? ({ title: trimmed } as PortfolioRecord) : null;
+            }
+            return null;
+        })
+        .filter((value): value is PortfolioRecord => Boolean(value));
+};
+
 const mapToContextProfile = (data: ProfileApiData | null): ContextProfileData | null => {
     if (!data) return null;
+    // If avatar/banner is null, empty string, or undefined, use default
+    // This ensures deleted images show as default in ProfileHero
+    const avatarValue = data.avatar && data.avatar.trim().length > 0 ? data.avatar : DEFAULT_AVATAR;
+    const bannerValue = data.banner && data.banner.trim().length > 0 ? data.banner : DEFAULT_BANNER;
+    
     return {
-        avatar: data.avatar || DEFAULT_AVATAR,
-        banner: data.banner || DEFAULT_BANNER,
+        avatar: avatarValue,
+        banner: bannerValue,
         firstName: data.firstname || "",
         lastName: data.lastname || "",
         email: data.email || "",
@@ -61,6 +109,10 @@ const mapToContextProfile = (data: ProfileApiData | null): ContextProfileData | 
         profession: data.profession || "",
         company: data.company || "",
         showPhone: Boolean(data.showPhone),
+        bio: data.bio || "",
+        skills: normalizeSkillsForContext(data.skills),
+        credentials: normalizeRecordsForContext(data.credentials),
+        projects: normalizeRecordsForContext(data.projects),
     };
 };
 
@@ -97,6 +149,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const [profession, setProfession] = useState("");
     const [company, setCompany] = useState("");
     const [showPhone, setShowPhone] = useState(false);
+    const [bio, setBio] = useState("");
     
     // UI states
     const [loading, setLoading] = useState(true);
@@ -121,6 +174,8 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const [bannerFile, setBannerFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+    const [deleteAvatar, setDeleteAvatar] = useState(false);
+    const [deleteBanner, setDeleteBanner] = useState(false);
     
     // Avatar generation states
     const [avatarSeeds, setAvatarSeeds] = useState<Record<string, string>>({});
@@ -167,6 +222,11 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                 setProfession(profileData.profession || "");
                 setCompany(profileData.company || "");
                 setShowPhone(profileData.showPhone || false);
+                setBio(profileData.bio || "");
+                
+                // Reset deletion flags
+                setDeleteAvatar(false);
+                setDeleteBanner(false);
                 
                 // Store original profile for comparison
                 setOriginalProfile(profileData);
@@ -223,6 +283,12 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
 
     const isFormValid = email.trim() !== "" && /.+@.+\..+/.test(email);
     const isChanged = originalProfile ? (
+        deleteAvatar ||
+        deleteBanner ||
+        avatarFile !== null ||
+        bannerFile !== null ||
+        avatarPreview !== null ||
+        bannerPreview !== null ||
         avatar !== (originalProfile.avatar || DEFAULT_AVATAR) || 
         banner !== (originalProfile.banner || DEFAULT_BANNER) ||
         firstName !== (originalProfile.firstname || "") || 
@@ -231,14 +297,22 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         phone !== (originalProfile.mobile || "") || 
         profession !== (originalProfile.profession || "") || 
         company !== (originalProfile.company || "") || 
-        showPhone !== (originalProfile.showPhone || false)
+        showPhone !== (originalProfile.showPhone || false) ||
+        bio !== (originalProfile.bio || "")
     ) : (
+        deleteAvatar ||
+        deleteBanner ||
+        avatarFile !== null ||
+        bannerFile !== null ||
+        avatarPreview !== null ||
+        bannerPreview !== null ||
         firstName.trim() !== "" || 
         lastName.trim() !== "" || 
         email.trim() !== "" || 
         phone.trim() !== "" || 
         profession.trim() !== "" || 
-        company.trim() !== ""
+        company.trim() !== "" ||
+        bio.trim() !== ""
     );
 
     // Handle file upload for avatar
@@ -256,6 +330,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             }
 
             setAvatarFile(file);
+            setDeleteAvatar(false); // Clear deletion flag when uploading new file
             const previewUrl = URL.createObjectURL(file);
             setCropImage(previewUrl);
             setIsCroppingAvatar(true);
@@ -278,6 +353,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             }
 
             setBannerFile(file);
+            setDeleteBanner(false); // Clear deletion flag when uploading new file
             const previewUrl = URL.createObjectURL(file);
             setCropImage(previewUrl);
             setIsCroppingAvatar(false);
@@ -298,6 +374,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         setAvatarFile(null);
         setAvatarPreview(null);
         setAvatar(DEFAULT_AVATAR);
+        setDeleteAvatar(true);
     };
 
     // Reset banner to default
@@ -305,6 +382,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         setBannerFile(null);
         setBannerPreview(null);
         setBanner(DEFAULT_BANNER);
+        setDeleteBanner(true);
     };
 
     // Generate DiceBear avatar
@@ -531,18 +609,23 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             if (profession) formData.append('profession', profession);
             if (company) formData.append('company', company);
             formData.append('showPhone', showPhone.toString());
+            formData.append('bio', bio.trim());
 
-            // Handle file uploads
-           if (avatarFile) {
-            formData.append('avatar', avatarFile);
-        } else if (avatar !== DEFAULT_AVATAR && !avatar.startsWith('blob:')) {
-            // Only include URL if it's not a blob URL
-            formData.append('avatarUrl', avatar);
-        }
+            // Handle file uploads and deletions
+            if (deleteAvatar) {
+                formData.append('deleteAvatar', 'true');
+            } else if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            } else if (avatar !== DEFAULT_AVATAR && !avatar.startsWith('blob:')) {
+                // Only include URL if it's not a blob URL
+                formData.append('avatarUrl', avatar);
+            }
 
-            if (bannerFile) {
+            if (deleteBanner) {
+                formData.append('deleteBanner', 'true');
+            } else if (bannerFile) {
                 formData.append('banner', bannerFile);
-            } else if (banner !== DEFAULT_BANNER) {
+            } else if (banner !== DEFAULT_BANNER && !banner.startsWith('blob:')) {
                 formData.append('bannerUrl', banner);
             }
 
@@ -557,11 +640,29 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
 
             const savedProfile: ProfileApiData = await response.json();
             
+            // Handle deleted images - if deletion was requested, ensure they're set to null/empty
+            if (deleteAvatar) {
+                savedProfile.avatar = null;
+            }
+            if (deleteBanner) {
+                savedProfile.banner = null;
+            }
+            
+            // Update local state to reflect deletions
+            if (deleteAvatar) {
+                setAvatar(DEFAULT_AVATAR);
+            }
+            if (deleteBanner) {
+                setBanner(DEFAULT_BANNER);
+            }
+            
             // Update original profile reference
             setOriginalProfile(savedProfile);
+            setBio(savedProfile.bio || "");
             
-            // Update context if available
-            setContextProfile(mapToContextProfile(savedProfile));
+            // Update context if available - this will trigger ProfileHero to re-render
+            const contextData = mapToContextProfile(savedProfile);
+            setContextProfile(contextData);
 
             setSuccess("Profile updated successfully!");
             
@@ -570,6 +671,8 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             setBannerFile(null);
             setAvatarPreview(null);
             setBannerPreview(null);
+            setDeleteAvatar(false);
+            setDeleteBanner(false);
             
             setTimeout(() => {
                 setSuccess(null);
@@ -645,7 +748,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                     <div className="absolute bottom-4 right-4 flex flex-wrap gap-2">
                                         <label
                                             htmlFor="banner-upload"
-                                            className="inline-flex items-center gap-2 rounded-full border border-dsb-neutral3/40 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-dsb-accent hover:text-dsb-accent dark:border-white/10 dark:bg-white/10 dark:text-white"
+                                            className="inline-flex items-center gap-2 rounded-lg cursor-pointer border border-dsb-neutral3/40 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-dsb-accent hover:text-dsb-accent dark:border-white/10 dark:bg-white/10 dark:text-white"
                                         >
                                             <Camera className="h-4 w-4" />
                                             Upload
@@ -655,7 +758,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                             type="button"
                                             variant="outline"
                                             onClick={handleDeleteBanner}
-                                            className="border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-400/30 dark:text-red-200 dark:hover:bg-red-500/10"
+                                            className="rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-4 py-2 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10"
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Remove
@@ -690,7 +793,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                         </Button>
                                         <label
                                             htmlFor="avatar-upload"
-                                            className="inline-flex items-center gap-2 rounded-full border border-dsb-neutral3/40 bg-dsb-accent px-4 py-2 text-sm font-semibold text-black shadow-sm transition hover:bg-dsb-accent/90"
+                                            className="inline-flex items-center gap-2 rounded-lg border cursor-pointer border-dsb-neutral3/40 bg-dsb-accent px-4 py-2 text-sm font-semibold text-black shadow-sm transition hover:bg-dsb-accent/90"
                                         >
                                             <Camera className="h-4 w-4" />
                                             Upload
@@ -700,7 +803,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                             type="button"
                                             variant="outline"
                                             onClick={handleDeleteAvatar}
-                                            className="border-red-200 px-4 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-400/30 dark:text-red-200 dark:hover:bg-red-500/10"
+                                            className="rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-4 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10"
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Reset
@@ -743,7 +846,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                             type="email"
                                         />
                                         {emailVerified ? (
-                                            <div className="flex h-11 items-center rounded-full bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                            <div className="flex h-11 items-center rounded-lg bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
                                                 <Check className="mr-1 h-4 w-4" />
                                                 Verified
                                             </div>
@@ -753,7 +856,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                                 variant="outline"
                                                 onClick={() => handleSendVerificationCode("email")}
                                                 disabled={verifyingEmail || !email}
-                                                className="h-11 border-dsb-accent px-4 text-sm font-semibold text-dsb-accent hover:bg-dsb-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                                className="h-11 rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-4 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                                             >
                                                 {verifyingEmail ? "Sending..." : "Verify"}
                                             </Button>
@@ -778,7 +881,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                             type="tel"
                                         />
                                         {phoneVerified ? (
-                                            <div className="flex h-11 items-center rounded-full bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                            <div className="flex h-11 items-center rounded-lg bg-emerald-100 px-3 text-sm font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
                                                 <Check className="mr-1 h-4 w-4" />
                                                 Verified
                                             </div>
@@ -788,7 +891,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                                 variant="outline"
                                                 onClick={() => handleSendVerificationCode("phone")}
                                                 disabled={verifyingPhone || !phone}
-                                                className="h-11 border-dsb-accent px-4 text-sm font-semibold text-dsb-accent hover:bg-dsb-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                                className="h-11 rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-4 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                                             >
                                                 {verifyingPhone ? "Sending..." : "Verify"}
                                             </Button>
@@ -819,6 +922,19 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                         placeholder="e.g. Datasense AI"
                                     />
                                 </div>
+                            </section>
+
+                            <section className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-900 dark:text-white">Biography</label>
+                                <textarea
+                                    value={bio}
+                                    onChange={(e) => setBio(e.target.value)}
+                                    className="min-h-[140px] w-full rounded-xl border border-dsb-neutral3/40 bg-white/90 px-4 py-3 text-base leading-relaxed text-slate-900 focus:border-dsb-accent focus:outline-none focus:ring-0 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                    placeholder="Share a short summary of your strengths, interests, and goals."
+                                />
+                                <p className="text-xs text-dsb-neutral2 dark:text-white/50">
+                                    This appears on your portfolio hero and helps peers understand your focus.
+                                </p>
                             </section>
 
                             <div className="flex items-center gap-3 rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-4 text-sm text-dsb-neutral2 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
@@ -873,14 +989,14 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                     type="button"
                                     variant="outline"
                                     onClick={closeDialog}
-                                    className="border-dsb-neutral3/40 bg-white px-6 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/20 dark:bg-white/10 dark:text-white/70"
+                                    className="rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-6 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={saving || !isChanged}
-                                    className="bg-dsb-accent px-6 py-2 text-sm font-semibold text-black hover:bg-dsb-accent/90 disabled:opacity-50"
+                                    className="bg-dsb-accent px-6 py-2 text-sm rounded-lg font-semibold text-black hover:bg-dsb-accent/90 disabled:opacity-50"
                                 >
                                     {saving ? (
                                         <>
@@ -997,7 +1113,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                             type="button"
                             variant="outline"
                             onClick={handleCancelCrop}
-                            className="border-dsb-neutral3/40 bg-white px-5 text-sm font-semibold text-slate-900 hover:border-dsb-accent hover:text-dsb-accent dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+                            className="rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-5 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10"
                         >
                             Cancel
                         </Button>

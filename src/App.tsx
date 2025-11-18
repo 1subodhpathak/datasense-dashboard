@@ -14,6 +14,7 @@ import SqlJourney from "./pages/SqlJourney";
 import NotFound from "./pages/NotFound";
 import Badges from "./pages/Badges";
 import { ThemeProvider } from './lib/theme-context'
+import { SidebarProvider } from './lib/sidebar-context'
 import Profile from "./pages/Profile";
 import Portfolio from "./pages/Portfolio";
 import Challenge from "./pages/Challenge";
@@ -70,14 +71,15 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <ProfileProvider>
-            <WebSocketProvider url="https://server.datasenseai.com/">
-              {/* Wrap NotificationProvider here */}
-              <NotificationProvider>
-                <BrowserRouter>
+        <SidebarProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ProfileProvider>
+              <WebSocketProvider url="https://server.datasenseai.com/">
+                {/* Wrap NotificationProvider here */}
+                <NotificationProvider>
+                  <BrowserRouter>
                   <Routes>
                     {/* Public route - accessible without login */}
                     {/* {  <Route path="/" element={<iframe src="/home.html" style={{ width: '100%', height: '100vh', border: 'none' }} title="External Page" />} /> } */}
@@ -209,11 +211,12 @@ const App = () => {
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </BrowserRouter>
-              </NotificationProvider>
-            </WebSocketProvider>
-          </ProfileProvider>
-        </TooltipProvider>
+                  </BrowserRouter>
+                </NotificationProvider>
+              </WebSocketProvider>
+            </ProfileProvider>
+          </TooltipProvider>
+        </SidebarProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

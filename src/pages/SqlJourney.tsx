@@ -156,21 +156,23 @@ const SqlJourney = () => {
 
   return (
     <DashboardLayout>
-      {/* Cyber grid, blue glow, and stars background */}
-      <div className="fixed inset-0 w-full h-full z-0">
-        {/* Soft blue radial glow */}
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[900px] rounded-full pointer-events-none z-0"
-          style={{
-            background: "radial-gradient(ellipse at center, rgba(59,230,255,0.13) 0%, rgba(0,0,0,0.0) 80%)",
-            filter: "blur(2px)",
-          }}
-        />
-        {/* <GridBackground /> */}
-        {/* <ThreeBackground /> */}
-        {/* <Starfield /> */}
-      </div>
+      {/* Force dark theme wrapper - overrides light theme */}
+      <div className="sql-journey-dark-theme bg-[#1D1E23] text-gray-100 min-h-screen">
+        {/* Cyber grid, blue glow, and stars background */}
+        <div className="fixed inset-0 w-full h-full z-0 bg-[#1D1E23]">
+          {/* Soft blue radial glow */}
+          <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[900px] rounded-full pointer-events-none z-0"
+            style={{
+              background: "radial-gradient(ellipse at center, rgba(59,230,255,0.13) 0%, rgba(0,0,0,0.0) 80%)",
+              filter: "blur(2px)",
+            }}
+          />
+          {/* <GridBackground /> */}
+          {/* <ThreeBackground /> */}
+          {/* <Starfield /> */}
+        </div>
 
-      <div className="p-4 md:p-8 min-h-screen relative z-10 pb-40" style={{ background: "transparent" }}>
+        <div className="p-4 md:p-8 min-h-screen relative z-10 pb-40" style={{ background: "transparent" }}>
         {/* Page header with futuristic style */}
         <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="flex items-center justify-between">
@@ -191,7 +193,7 @@ const SqlJourney = () => {
               <span className="text-white font-medium">Overall Journey Progress</span>
               <span className="text-dsb-accent font-bold">{overallProgress}%</span>
             </div>
-            <Progress value={overallProgress} className="h-2 md:h-3 bg-dsb-neutral3/50">
+            <Progress value={overallProgress} className="h-2 md:h-3 !bg-black/40">
               <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle,rgba(0,226,202,0.8)_0%,transparent_70%)]"></div>
               </div>
@@ -236,6 +238,7 @@ const SqlJourney = () => {
             </p>
           )}
         </div>
+      </div>
       </div>
     </DashboardLayout>
   );

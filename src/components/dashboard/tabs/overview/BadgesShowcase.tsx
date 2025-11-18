@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
@@ -26,7 +25,7 @@ const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({ badges }) => {
   };
   
   const renderBadgeIcon = (status: string, type: string, imagePath?: string) => {
-    if (status === "locked") return <Lock className="size-8 text-gray-500" />;
+    if (status === "locked") return <Lock className="size-8 text-gray-400 dark:text-gray-500" />;
     
     if (imagePath) {
       return (
@@ -45,37 +44,41 @@ const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({ badges }) => {
   };
 
   return (
-    <Card className="neo-glass-dark border-dsb-neutral3/30 backdrop-blur-md hover:border-dsb-accent/30 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span className="text-white text-base glow-text-subtle">Your Badges and Achievements</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-dsb-neutral1 hover:text-white h-7"
-            onClick={handleViewAllBadges}
-          >
-            View All
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {badges.slice(0, 3).map((badge) => (
-          <div key={badge.id} className="flex items-center gap-3">
-            {renderBadgeIcon(badge.status, badge.type, badge.imagePath)}
-            <div className="flex-1">
-              <p className="text-white text-sm font-medium">{badge.name}</p>
-              <div className="mt-1 h-1 w-full bg-dsb-neutral3/30 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-dsb-accent/80 rounded-full" 
-                  style={{ width: `${badge.progress}%` }} 
-                />
+    <div className="neo-glass rounded-3xl p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Your Badges and Achievements</h3>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white h-7"
+          onClick={handleViewAllBadges}
+        >
+          View All
+        </Button>
+      </div>
+      <div className="space-y-4">
+        {badges.length > 0 ? (
+          badges.slice(0, 3).map((badge) => (
+            <div key={badge.id} className="flex items-center gap-3">
+              {renderBadgeIcon(badge.status, badge.type, badge.imagePath)}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{badge.name}</p>
+                <div className="mt-1 h-1 w-full bg-gray-200 dark:bg-black/40 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-cyan-600 dark:bg-cyan-500 rounded-full" 
+                    style={{ width: `${badge.progress}%` }} 
+                  />
+                </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="rounded-xl bg-white dark:bg-[#32363C] p-6 text-center text-sm text-gray-600 shadow-sm dark:text-gray-300">
+            No badges earned yet. Keep practicing to unlock achievements!
           </div>
-        ))}
-      </CardContent>
-    </Card>
+        )}
+      </div>
+    </div>
   );
 };
 

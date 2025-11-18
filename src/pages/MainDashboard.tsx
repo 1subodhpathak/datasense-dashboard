@@ -9,15 +9,18 @@ import { Link } from "react-router-dom";
 import {
   Activity,
   Award,
+  BookOpen,
+  Clock3,
   Flame,
   Gauge,
   LineChart,
   PlayCircle,
+  Star,
   Target,
   Trophy,
   Users,
+  Flag,
 } from "lucide-react";
-import { useTheme } from "@/lib/theme-context";
 
 interface Submission {
   questionId: string | null;
@@ -63,87 +66,61 @@ interface BattlegroundStats {
   rank: number;
 }
 
-const mockBattlegroundStats: BattlegroundStats = {
-  totalXP: 12996,
-  totalWins: 24,
-  totalDraws: 4,
-  totalLosses: 12,
-  totalGames: 40,
-  rank: 78,
+const getQuizType = (quizName: string): string => {
+  const lowerCaseQuizName = quizName.toLowerCase();
+  if (lowerCaseQuizName.startsWith("sql:")) return "sql";
+  if (lowerCaseQuizName.startsWith("python:")) return "python";
+  if (lowerCaseQuizName.startsWith("mcq:")) return "mcq";
+  return "sql";
 };
 
-function generateActivityLog(): any {
-  const today = new Date();
-  const activityLog: Record<string, { months: Record<string, Record<string, number>> }> = {};
-  for (let i = 0; i < 60; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString();
-    const day = date.getDate().toString();
-    if (!activityLog[year]) activityLog[year] = { months: {} };
-    if (!activityLog[year].months[month]) activityLog[year].months[month] = {};
-    activityLog[year].months[month][day] = Math.floor(Math.random() * 4);
+const checkIfQuizCompleted = async (quiz: any, userEmail: string): Promise<boolean> => {
+  const quizType = getQuizType(quiz.quizName);
+
+  if (!userEmail) return false;
+
+  let url;
+  if (quizType === 'mcq') {
+    url = `https://server.datasenseai.com/leaderboard/${quiz._id}`;
+  } else if (quizType === 'python') {
+    url = `https://server.datasenseai.com/leaderboard/python/${quiz._id}`;
+  } else if (quizType === 'sql') {
+    url = `https://server.datasenseai.com/leaderboard/sql/${quiz._id}`;
+  } else {
+    return false;
   }
-  return activityLog;
-}
 
-function createMockUserData(user: any): UserData {
-  return {
-    username: user?.username || user?.firstName || "CodeMaster",
-    email: user?.primaryEmailAddress?.emailAddress || "codemaster@example.com",
-    profileImageUrl: user?.imageUrl || "/placeholder.svg?height=40&width=40",
-    fuel: 75,
-    isPremium: true,
-    solved: new Array(5).fill({}).map((_, idx) => ({
-      title: `Mock Challenge ${idx + 1}`,
-      difficulty: idx % 3 === 0 ? "Hard" : idx % 2 === 0 ? "Medium" : "Easy",
-    })),
-    submissionHistory: [
-      {
-        questionId: null,
-        isCorrect: true,
-        submittedCode: "SELECT * FROM festival_data;",
-        submittedAt: new Date(Date.now() - 3600000).toISOString(),
-        _id: "mock-1",
-        title: "Festival Data Query",
-        difficulty: "Medium",
-      },
-      {
-        questionId: null,
-        isCorrect: false,
-        submittedCode: "def find_max(lst):\n    return max(lst)",
-        submittedAt: new Date(Date.now() - 86400000).toISOString(),
-        _id: "mock-2",
-        title: "Find Maximum",
-        difficulty: "Easy",
-      },
-    ],
-    liveQuiz: [
-      { subject: "Algorithms", scores: 85, totalScores: 100 },
-      { subject: "Data Structures", scores: 70, totalScores: 100 },
-    ],
-    totalQuestions: 120,
-  };
-}
-
-function createMockStreakData(): StreakData {
-  return {
-    subjectStreaks: new Map([
-      ["Algorithms", { currentStreak: 7, longestStreak: 14 }],
-      ["Data Structures", { currentStreak: 3, longestStreak: 10 }],
-      ["System Design", { currentStreak: 0, longestStreak: 5 }],
-    ]),
-    activityLog: generateActivityLog(),
-  };
-}
+  try {
+    const response = await axios.get(url);
+    const leaderboard = response.data.leaderboard;
+    
+    // Check both timely and late users
+    const allUsers = [
+      ...(leaderboard.timelyUsers || []),
+      ...(leaderboard.lateUsers || [])
+    ];
+    
+    return allUsers.some((leaderboardUser: any) =>
+      leaderboardUser.userId && leaderboardUser.userId.split(',')[0].trim() === userEmail
+    );
+  } catch (error) {
+    return false;
+  }
+};
 
 const MainDashboard = () => {
   const { user, isLoaded, isSignedIn } = useUser();
-  const { theme } = useTheme();
   const [practiceData, setPracticeData] = useState<UserData | null>(null);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
-  const [battlegroundStats, setBattlegroundStats] = useState<BattlegroundStats>(mockBattlegroundStats);
+  const [battlegroundStats, setBattlegroundStats] = useState<BattlegroundStats>({
+    totalXP: 0,
+    totalWins: 0,
+    totalDraws: 0,
+    totalLosses: 0,
+    totalGames: 0,
+    rank: 0,
+  });
+  const [liveQuizProgress, setLiveQuizProgress] = useState({ completed: 0, total: 0, percentage: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -151,24 +128,38 @@ const MainDashboard = () => {
       if (!isLoaded) return;
 
       if (!isSignedIn || !user) {
-        setPracticeData(createMockUserData(user));
-        setStreakData(createMockStreakData());
-        setBattlegroundStats(mockBattlegroundStats);
+        setPracticeData(null);
+        setStreakData(null);
+        setBattlegroundStats({
+          totalXP: 0,
+          totalWins: 0,
+          totalDraws: 0,
+          totalLosses: 0,
+          totalGames: 0,
+          rank: 0,
+        });
+        setLiveQuizProgress({ completed: 0, total: 0, percentage: 0 });
         setLoading(false);
         return;
       }
 
       try {
+        // Fetch all data in parallel
         const practicePromise = axios.get(`https://server.datasenseai.com/practice-dashboard/${user.id}`);
         const streakPromise = axios.get(`https://server.datasenseai.com/question-attempt/streak/${user.id}`);
+        const customTestPromise = axios.get(`https://server.datasenseai.com/custom-test/submissions/${user.id}`);
         const battlegroundPromise = fetch(`https://server.datasenseai.com/battleground-leaderboard/user-data/${user.id}`);
+        const allQuizzesPromise = axios.get(`https://server.datasenseai.com/quiz/quizzes`);
 
-        const [practiceResponse, streakResponse, battlegroundResponse] = await Promise.allSettled([
+        const [practiceResponse, streakResponse, customTestResponse, battlegroundResponse, allQuizzesResponse] = await Promise.allSettled([
           practicePromise,
           streakPromise,
+          customTestPromise,
           battlegroundPromise,
+          allQuizzesPromise,
         ]);
 
+        // Process practice dashboard data
         let processedPractice: UserData | null = null;
         if (practiceResponse.status === "fulfilled" && practiceResponse.value.data) {
           const apiUserData = practiceResponse.value.data;
@@ -180,74 +171,193 @@ const MainDashboard = () => {
                 solvedQuestion,
               };
             }) || [];
+          
           processedPractice = {
             username: user.username || user.firstName || "User",
             email: user.primaryEmailAddress?.emailAddress || "user@example.com",
             profileImageUrl: user.imageUrl || "/placeholder.svg?height=40&width=40",
-            fuel: apiUserData.fuel || 75,
+            fuel: apiUserData.fuel || 0,
             isPremium: apiUserData.isPremium || false,
             solved: apiUserData.solved || [],
             submissionHistory: matchedSubmissions.slice().reverse(),
             liveQuiz: apiUserData.liveQuiz || [],
-            totalQuestions: apiUserData.totalQuestions || 100,
+            totalQuestions: apiUserData.totalQuestions || 0,
           };
         } else {
-          processedPractice = createMockUserData(user);
+          processedPractice = {
+            username: user.username || user.firstName || "User",
+            email: user.primaryEmailAddress?.emailAddress || "user@example.com",
+            profileImageUrl: user.imageUrl || "/placeholder.svg?height=40&width=40",
+            fuel: 0,
+            isPremium: false,
+            solved: [],
+            submissionHistory: [],
+            liveQuiz: [],
+            totalQuestions: 0,
+          };
         }
         setPracticeData(processedPractice);
 
+        // Process streak data - API returns { streakData: { subjectStreaks, activityLog } }
         if (streakResponse.status === "fulfilled" && streakResponse.value.data) {
-          const apiStreakData = streakResponse.value.data;
-          const mapped = new Map(
-            Object.entries(apiStreakData.subjectStreaks || {}).map(([subject, data]: [string, any]) => [
-              subject,
-              {
-                currentStreak: data.currentStreak || 0,
-                longestStreak: data.longestStreak || 0,
-                lastActiveDate: data.lastActiveDate || null,
-              },
-            ])
-          );
+          const responseData = streakResponse.value.data;
+          // Handle both direct data and nested streakData structure
+          const apiStreakData = responseData.streakData || responseData;
+          
+          // Convert subjectStreaks from Map or Object to Map
+          let subjectStreaksMap = new Map();
+          if (apiStreakData.subjectStreaks) {
+            if (apiStreakData.subjectStreaks instanceof Map) {
+              subjectStreaksMap = apiStreakData.subjectStreaks;
+            } else if (typeof apiStreakData.subjectStreaks === 'object') {
+              // Convert object to Map
+              Object.entries(apiStreakData.subjectStreaks).forEach(([subject, data]: [string, any]) => {
+                subjectStreaksMap.set(subject, {
+                  currentStreak: data.currentStreak || 0,
+                  longestStreak: data.longestStreak || 0,
+                  lastActiveDate: data.lastActiveDate || null,
+                });
+              });
+            }
+          }
+
           setStreakData({
-            subjectStreaks: mapped,
-            activityLog: apiStreakData.activityLog ?? generateActivityLog(),
+            subjectStreaks: subjectStreaksMap,
+            activityLog: apiStreakData.activityLog || {},
           });
         } else {
-          setStreakData(createMockStreakData());
+          setStreakData({
+            subjectStreaks: new Map(),
+            activityLog: {},
+          });
         }
 
+        // Process battleground stats
         if (battlegroundResponse.status === "fulfilled" && battlegroundResponse.value.ok) {
-          const data = await battlegroundResponse.value.json();
-          let totalXP = 0,
-            totalWins = 0,
-            totalDraws = 0,
-            totalLosses = 0,
-            totalGames = 0;
+          try {
+            const data = await battlegroundResponse.value.json();
+            let totalXP = 0,
+              totalWins = 0,
+              totalDraws = 0,
+              totalLosses = 0,
+              totalGames = 0;
 
-          data.forEach((entry: any) => {
-            totalXP += entry.xp || 0;
-            totalWins += entry.won || 0;
-            totalDraws += entry.draw || 0;
-            totalLosses += entry.lose || 0;
-            totalGames += (entry.won || 0) + (entry.draw || 0) + (entry.lose || 0);
-          });
+            if (Array.isArray(data) && data.length > 0) {
+              data.forEach((entry: any) => {
+                totalXP += entry.xp || 0;
+                totalWins += entry.won || 0;
+                totalDraws += entry.draw || 0;
+                totalLosses += entry.lose || 0;
+                totalGames += (entry.won || 0) + (entry.draw || 0) + (entry.lose || 0);
+              });
 
-          setBattlegroundStats({
-            totalXP,
-            totalWins,
-            totalDraws,
-            totalLosses,
-            totalGames,
-            rank: data?.[0]?.rank || mockBattlegroundStats.rank,
-          });
+              setBattlegroundStats({
+                totalXP,
+                totalWins,
+                totalDraws,
+                totalLosses,
+                totalGames,
+                rank: 0, // Rank calculation would require fetching overall leaderboard
+              });
+            } else {
+              setBattlegroundStats({
+                totalXP: 0,
+                totalWins: 0,
+                totalDraws: 0,
+                totalLosses: 0,
+                totalGames: 0,
+                rank: 0,
+              });
+            }
+          } catch (parseError) {
+            console.error("Error parsing battleground data:", parseError);
+            setBattlegroundStats({
+              totalXP: 0,
+              totalWins: 0,
+              totalDraws: 0,
+              totalLosses: 0,
+              totalGames: 0,
+              rank: 0,
+            });
+          }
         } else {
-          setBattlegroundStats(mockBattlegroundStats);
+          // Handle 404 or other errors gracefully
+          setBattlegroundStats({
+            totalXP: 0,
+            totalWins: 0,
+            totalDraws: 0,
+            totalLosses: 0,
+            totalGames: 0,
+            rank: 0,
+          });
+        }
+
+        // Process custom test data (stored for potential future use)
+        if (customTestResponse.status === "fulfilled" && customTestResponse.value.data) {
+          const customTestData = customTestResponse.value.data;
+          // Custom test submissions are available in customTestData.data?.submissions
+          // Can be used for future enhancements to display custom test history
+          if (customTestData.data?.submissions) {
+            console.log("Custom test submissions loaded:", customTestData.data.submissions.length);
+          }
+        }
+
+        // Process live quiz progress
+        if (allQuizzesResponse.status === "fulfilled" && allQuizzesResponse.value.data) {
+          const allQuizzes = allQuizzesResponse.value.data || [];
+          const userEmail = user.primaryEmailAddress?.emailAddress;
+
+          if (userEmail && allQuizzes.length > 0) {
+            // Check completion status for all quizzes
+            const statusPromises = allQuizzes.map((quiz: any) =>
+              checkIfQuizCompleted(quiz, userEmail).then((isCompleted: boolean) => ({
+                quizId: quiz._id,
+                isCompleted,
+              }))
+            );
+
+            const statuses = await Promise.all(statusPromises);
+            const completedCount = statuses.filter((status: any) => status.isCompleted).length;
+            const totalQuizzes = allQuizzes.length;
+            const progressPercentage = totalQuizzes > 0 ? Math.floor((completedCount / totalQuizzes) * 100) : 0;
+
+            setLiveQuizProgress({
+              completed: completedCount,
+              total: totalQuizzes,
+              percentage: progressPercentage,
+            });
+          } else {
+            setLiveQuizProgress({ completed: 0, total: allQuizzes.length || 0, percentage: 0 });
+          }
+        } else {
+          setLiveQuizProgress({ completed: 0, total: 0, percentage: 0 });
         }
       } catch (error) {
         console.error("Failed to load dashboard data", error);
-        setPracticeData(createMockUserData(user));
-        setStreakData(createMockStreakData());
-        setBattlegroundStats(mockBattlegroundStats);
+        setPracticeData({
+          username: user.username || user.firstName || "User",
+          email: user.primaryEmailAddress?.emailAddress || "user@example.com",
+          profileImageUrl: user.imageUrl || "/placeholder.svg?height=40&width=40",
+          fuel: 0,
+          isPremium: false,
+          solved: [],
+          submissionHistory: [],
+          liveQuiz: [],
+          totalQuestions: 0,
+        });
+        setStreakData({
+          subjectStreaks: new Map(),
+          activityLog: {},
+        });
+        setBattlegroundStats({
+          totalXP: 0,
+          totalWins: 0,
+          totalDraws: 0,
+          totalLosses: 0,
+          totalGames: 0,
+          rank: 0,
+        });
+        setLiveQuizProgress({ completed: 0, total: 0, percentage: 0 });
       } finally {
         setLoading(false);
       }
@@ -257,8 +367,8 @@ const MainDashboard = () => {
   }, [isLoaded, isSignedIn, user]);
 
   const solvedCount = practiceData?.solved?.length || 0;
-  const totalQuestions = practiceData?.totalQuestions || 1;
-  const completionRate = Math.round((solvedCount / totalQuestions) * 100);
+  const totalQuestions = practiceData?.totalQuestions || 0;
+  const completionRate = totalQuestions > 0 ? Math.round((solvedCount / totalQuestions) * 100) : 0;
 
   const streakHighlights = useMemo(() => {
     if (!streakData?.subjectStreaks) return [];
@@ -300,23 +410,23 @@ const MainDashboard = () => {
     ? Math.round((battlegroundStats.totalWins / battlegroundStats.totalGames) * 100)
     : 0;
 
-  const gridLineColor = "rgba(255,255,255,0.18)";
-  const gridGradientTop = "#1fb9b9";
-  const gridGradientBottom = "#137c7c";
+  const heroGridLineColor = "rgba(255,255,255,0.08)";
+  const heroGradientTop = "#1eafaf";
+  const heroGradientBottom = "#126464";
 
   if (loading) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
-          <div className="h-32 rounded-2xl bg-slate-200/30 animate-pulse dark:bg-slate-700/40" />
+          <div className="h-32 rounded-2xl bg-gray-200/30 animate-pulse dark:bg-[#32363C]/40" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, idx) => (
-              <div key={idx} className="h-28 rounded-2xl bg-slate-200/30 animate-pulse dark:bg-slate-700/40" />
+              <div key={idx} className="h-28 rounded-2xl bg-gray-200/30 animate-pulse dark:bg-[#32363C]/40" />
             ))}
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 h-72 rounded-2xl bg-slate-200/30 animate-pulse dark:bg-slate-700/40" />
-            <div className="h-72 rounded-2xl bg-slate-200/30 animate-pulse dark:bg-slate-700/40" />
+            <div className="lg:col-span-2 h-72 rounded-2xl bg-gray-200/30 animate-pulse dark:bg-[#32363C]/40" />
+            <div className="h-72 rounded-2xl bg-gray-200/30 animate-pulse dark:bg-[#32363C]/40" />
           </div>
         </div>
       </DashboardLayout>
@@ -327,80 +437,158 @@ const MainDashboard = () => {
     <DashboardLayout>
       <div className="space-y-8">
         <section
-          className="relative overflow-hidden rounded-3xl border border-white/20 p-8 text-white shadow-lg dark:border-white/10"
+          className="relative overflow-hidden rounded-3xl border border-white/20 text-white shadow-lg"
           style={{
-            backgroundImage: `linear-gradient(${gridLineColor} 1px, transparent 1px), linear-gradient(90deg, ${gridLineColor} 1px, transparent 1px), linear-gradient(180deg, ${gridGradientTop} 0%, ${gridGradientBottom} 100%)`,
+            backgroundImage: `linear-gradient(${heroGridLineColor} 1px, transparent 1px), linear-gradient(90deg, ${heroGridLineColor} 1px, transparent 1px), linear-gradient(180deg, ${heroGradientTop} 0%, ${heroGradientBottom} 100%)`,
             backgroundSize: "32px 32px, 32px 32px, cover",
             backgroundPosition: "0 0, 0 0, 0 0",
           }}
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-white/85">Welcome back</p>
-              <h2 className="mt-2 text-3xl font-semibold text-white/85">
-                {practiceData?.username ? `${practiceData.username}, your learning hub is ready.` : "Your learning hub is ready."}
+          <div className="flex flex-col gap-5 p-6 md:p-7">
+            <div className="flex-1 space-y-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-14 w-14 flex-shrink-0 rounded-xl bg-white/20 flex items-center justify-center">
+                  <LineChart className="h-7 w-7 text-white/95" />
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-xs font-semibold text-black px-5 py-2 rounded-lg backdrop-blur bg-[#abfff9]">
+                    🔥 {(streakHighlights[0]?.current ?? 0).toLocaleString()} day streak
+                  </span>
+                  <span className="text-xs font-bold px-5 py-2 rounded-lg backdrop-blur bg-[#FFF9D8] text-[#FFB039]">
+                    ★ {battlegroundWinRate || 0}% win rate
+                  </span>
+                </div>
+              </div>
+              <p className="text-2xl text-white/95">Welcome back</p>
+              <h2 className="text-3xl md:text-[34px] font-extrabold tracking-tight text-white/95">
+                {practiceData?.username
+                  ? `${practiceData.username}, your learning hub is ready.`
+                  : "Your learning hub is ready."}
               </h2>
-              <p className="mt-3 max-w-2xl text-white/90">
-                Track your battleground performance, monitor practice progress, and jump into your next milestone — everything lives here.
+              <div className="flex items-center gap-4 w-full">
+              <p className="mt-2 text-base text-white/95">
+                Monitor every win, streak, and milestone in one place. Stay on pace with personalised insights and jump back into practice whenever you're ready.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {quickActions.map((action) => (
-                <Link key={action.title} to={action.href}>
-                  <Button className="flex items-center gap-2 rounded-full bg-white/15 px-5 text-sm font-semibold text-white/85 hover:bg-white/25">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                      <action.icon className="h-4 w-4" />
-                    </span>
-                    {action.cta}
+              <Link to="https://practice.datasenseai.com/practice-area?subject=sql" target="_blank" className="flex-shrink-0">
+                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                    Continue practice
                   </Button>
                 </Link>
-              ))}
+              </div>
+              {/* <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-5 text-white/90 text-base">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {(practiceData?.submissionHistory.length ?? 0).toLocaleString()} recent submissions
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock3 className="h-4 w-4" />
+                  {practiceData?.liveQuiz.length ?? 0} active quizzes
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  {battlegroundStats.totalXP.toLocaleString()} XP earned
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  {battlegroundStats.totalGames.toLocaleString()} battleground games
+                </div>
+                <div className="flex items-center gap-2">
+                  <Flag className="h-4 w-4" />
+                  Completion {completionRate}%
+                </div>
+              </div> */}
             </div>
+            {/* <div className="mt-4">
+              <div className="flex items-center gap-4 w-full">
+                <div className="flex-1">
+                  <div className="text-lg mb-2">
+                    Your Progress :{" "}
+                    <span className="font-semibold text-green-400">
+                      {completionRate}% Completed
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/40">
+                    <div
+                      className="h-2 rounded-full bg-green-300"
+                      style={{ width: `${Math.min(100, completionRate)}%` }}
+                    />
+                  </div>
+                </div>
+                <Link to="https://practice.datasenseai.com/practice-area?subject=sql" target="_blank" className="flex-shrink-0">
+                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                    Continue practice
+                  </Button>
+                </Link>
+                <Link to="#" className="flex-shrink-0">
+                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-xl whitespace-nowrap">
+                    Continue Learning
+                  </Button>
+                </Link>
+              </div>
+            </div> */}
           </div>
         </section>
+        {/* <div className="flex flex-wrap gap-3">
+          {quickActions.map((action) => (
+            <Link key={action.title} to={action.href}>
+              <Button className="flex items-center gap-2 rounded-lg bg-gray-900/10 px-5 text-sm font-semibold text-gray-800 hover:bg-gray-900/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900/10 dark:bg-white/10">
+                  <action.icon className="h-4 w-4 text-gray-700 dark:text-white" />
+                </span>
+                {action.cta}
+              </Button>
+            </Link>
+          ))}
+        </div> */}
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="neo-glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Battleground XP</span>
-              <Flame className="h-5 w-5 text-[#00E2CA]" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Practice Progress</span>
+              <LineChart className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{battlegroundStats.totalXP}</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Rank #{battlegroundStats.rank}</p>
+            <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">{completionRate}%</p>
+            <Progress value={completionRate} className="mt-4 h-2" />
           </div>
 
           <div className="neo-glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Win Rate</span>
-              <Gauge className="h-5 w-5 text-[#00E2CA]" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Live Quiz Progress</span>
+              <BookOpen className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{battlegroundWinRate}%</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
+            <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">{liveQuizProgress.percentage}%</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {liveQuizProgress.completed} / {liveQuizProgress.total} completed
+            </p>
+          </div>
+
+          <div className="neo-glass rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Win Rate</span>
+              <Gauge className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">{battlegroundWinRate}%</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               {battlegroundStats.totalWins}W · {battlegroundStats.totalLosses}L · {battlegroundStats.totalDraws}D
             </p>
           </div>
 
           <div className="neo-glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Practice Progress</span>
-              <LineChart className="h-5 w-5 text-[#00E2CA]" />
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{completionRate}%</p>
-            <Progress value={completionRate} className="mt-4 h-2" />
-          </div>
-
-          <div className="neo-glass rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Top Streak</span>
-              <Target className="h-5 w-5 text-[#00E2CA]" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Top Streak</span>
+              <Target className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div className="mt-3 space-y-2">
-              {streakHighlights.slice(0, 2).map((streak) => (
-                <div key={streak.subject} className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-slate-700 dark:text-slate-200">{streak.subject}</span>
-                  <span className="text-slate-900 dark:text-white">{streak.current} days</span>
-                </div>
-              ))}
+              {streakHighlights.length > 0 ? (
+                streakHighlights.slice(0, 2).map((streak) => (
+                  <div key={streak.subject} className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700 dark:text-gray-200">{streak.subject}</span>
+                    <span className="text-gray-900 dark:text-white">{streak.current} days</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No streaks yet</p>
+              )}
             </div>
           </div>
         </section>
@@ -409,10 +597,10 @@ const MainDashboard = () => {
           <div className="neo-glass rounded-3xl p-6 lg:col-span-2">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Recent Practice Activity</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300">Latest submissions and outcomes</p>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Practice Activity</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Latest submissions and outcomes</p>
               </div>
-              <Badge variant="outline" className="border-slate-300 bg-slate-100 text-xs uppercase tracking-wide text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+              <Badge variant="outline" className="border-gray-300 bg-gray-100 text-xs uppercase tracking-wide text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
                 Submissions
               </Badge>
             </div>
@@ -420,30 +608,30 @@ const MainDashboard = () => {
               {recentSubmissions.map((submission) => (
                 <div
                   key={submission._id}
-                  className="flex items-center justify-between rounded-xl bg-white/90 p-4 text-sm shadow-sm transition dark:bg-slate-900/60"
+                  className="flex items-center justify-between rounded-xl bg-white dark:bg-[#32363C] p-4 text-sm shadow-sm transition dark:bg-gray-900/60"
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                        submission.isCorrect ? "bg-emerald-500/20 text-emerald-600" : "bg-red-500/20 text-red-600"
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
+                        submission.isCorrect ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-red-500/20 text-red-600 dark:text-red-400"
                       }`}
                     >
                       {submission.isCorrect ? "AC" : "WA"}
                     </span>
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100">{submission.title || "Untitled Challenge"}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                      <p className="font-medium text-gray-800 dark:text-gray-100">{submission.title || "Untitled Challenge"}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
                         {new Date(submission.submittedAt).toLocaleDateString()} · {submission.difficulty || "Medium"}
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
+                  <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800">
                     Review
                   </Button>
                 </div>
               ))}
               {!recentSubmissions.length && (
-                <div className="rounded-2xl bg-white/90 p-6 text-center text-sm text-slate-600 shadow-sm dark:bg-slate-900/60 dark:text-slate-300">
+                <div className="rounded-2xl bg-white dark:bg-[#32363C] p-6 text-center text-sm text-gray-600 shadow-sm dark:bg-gray-900/60 dark:text-gray-300">
                   No practice submissions yet. Start solving to build your streak.
                 </div>
               )}
@@ -451,60 +639,66 @@ const MainDashboard = () => {
           </div>
 
           <div className="neo-glass rounded-3xl p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Skill Streaks</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Keep momentum across topics</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Skill Streaks</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Keep momentum across topics</p>
             <div className="mt-4 space-y-4">
-              {streakHighlights.map((item) => (
-                <div key={item.subject}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-200">{item.subject}</span>
-                    <span className="text-slate-900 dark:text-white">{item.current} days</span>
+              {streakHighlights.length > 0 ? (
+                streakHighlights.map((item) => (
+                  <div key={item.subject}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-700 dark:text-gray-200">{item.subject}</span>
+                      <span className="text-gray-900 dark:text-white">{item.current} days</span>
+                    </div>
+                    <Progress value={(item.current / Math.max(item.longest, 1)) * 100} className="mt-2 h-1.5" />
                   </div>
-                  <Progress value={(item.current / Math.max(item.longest, 1)) * 100} className="mt-2 h-1.5" />
+                ))
+              ) : (
+                <div className="rounded-xl bg-white dark:bg-[#32363C] p-6 text-center text-sm text-gray-600 shadow-sm dark:bg-gray-900/60 dark:text-gray-300">
+                  Start practicing to build your streaks.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="neo-glass rounded-3xl p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Battleground Snapshot</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Performance across recent matches</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Battleground Snapshot</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Performance across recent matches</p>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-slate-700 dark:text-slate-200">Matches Played</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{battlegroundStats.totalGames}</span>
+                <span className="text-gray-700 dark:text-gray-200">Matches Played</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{battlegroundStats.totalGames}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-700 dark:text-slate-200">Win / Loss</span>
-                <span className="font-semibold text-slate-900 dark:text-white">
+                <span className="text-gray-700 dark:text-gray-200">Win / Loss</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {battlegroundStats.totalWins} / {battlegroundStats.totalLosses}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-700 dark:text-slate-200">Current Rank</span>
-                <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                  <Trophy className="h-4 w-4" /> #{battlegroundStats.rank}
+                <span className="text-gray-700 dark:text-gray-200">Current Rank</span>
+                <span className="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                  <Trophy className="h-4 w-4" /> {battlegroundStats.rank > 0 ? `#${battlegroundStats.rank}` : "N/A"}
                 </span>
               </div>
             </div>
             <Link to="/battleground">
-              <Button className="mt-6 w-full rounded-full bg-[#008B8B] text-white hover:bg-[#007a7a]">
+              <Button className="mt-6 w-full rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white">
                 View Detailed Battleground
               </Button>
             </Link>
           </div>
 
           <div className="neo-glass rounded-3xl p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Momentum</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Subjects trending upwards</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Learning Momentum</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Subjects trending upwards</p>
             <div className="mt-4 space-y-3">
               {topLiveQuiz.map((quiz) => (
-                <div key={quiz.subject} className="rounded-xl bg-white/90 p-3 text-sm shadow-sm transition dark:bg-slate-900/60">
+                <div key={quiz.subject} className="rounded-xl bg-white dark:bg-[#32363C] p-3 text-sm shadow-sm transition dark:bg-gray-900/60">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-700 dark:text-slate-200">{quiz.subject}</span>
-                    <Badge variant="outline" className="border-slate-300 bg-slate-100 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    <span className="font-medium text-gray-700 dark:text-gray-200">{quiz.subject}</span>
+                    <Badge variant="outline" className="border-gray-300 bg-gray-100 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
                       {quiz.scores}/{quiz.totalScores}
                     </Badge>
                   </div>
@@ -512,7 +706,7 @@ const MainDashboard = () => {
                 </div>
               ))}
               {!topLiveQuiz.length && (
-                <div className="rounded-xl bg-white/90 p-6 text-center text-sm text-slate-600 shadow-sm dark:bg-slate-900/60 dark:text-slate-300">
+                <div className="rounded-xl bg-white dark:bg-[#32363C] p-6 text-center text-sm text-gray-600 shadow-sm dark:bg-gray-900/60 dark:text-gray-300">
                   Join a live quiz to populate your learning metrics.
                 </div>
               )}
@@ -520,28 +714,26 @@ const MainDashboard = () => {
           </div>
 
           <div className="neo-glass rounded-3xl p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Community Leaderboard</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Top players to watch</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Your Stats</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Your performance overview</p>
             <div className="mt-4 space-y-3">
-              {[
-                { name: "Isaac Roberts", points: 93267, position: 1 },
-                { name: "Olivia King", points: 88267, position: 2 },
-                { name: "Ava Garcia", points: 82267, position: 3 },
-                { name: practiceData?.username || "You", points: battlegroundStats.totalXP, position: battlegroundStats.rank },
-              ].map((player) => (
-                <div key={player.name} className="flex items-center justify-between rounded-xl bg-white/90 p-3 text-sm shadow-sm dark:bg-slate-900/60">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#008B8B]/15 text-[#008B8B] dark:bg-white/10 dark:text-white">
-                      {player.position <= 3 ? "#" + player.position : "You"}
-                    </span>
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100">{player.name}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">{player.points.toLocaleString()} pts</p>
-                    </div>
+              <div className="flex items-center justify-between rounded-xl bg-white dark:bg-[#32363C] p-3 text-sm shadow-sm dark:bg-gray-900/60">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-600/15 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+                    You
+                  </span>
+                  <div>
+                    <p className="font-medium text-gray-800 dark:text-gray-100">{practiceData?.username || "User"}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">{battlegroundStats.totalXP.toLocaleString()} XP</p>
                   </div>
-                  <Users className="h-4 w-4 text-slate-700 dark:text-slate-200" />
                 </div>
-              ))}
+                <Users className="h-4 w-4 text-gray-700 dark:text-gray-200" />
+              </div>
+              <div className="rounded-xl bg-white dark:bg-[#32363C] p-4 text-center text-sm text-gray-600 shadow-sm dark:bg-gray-900/60 dark:text-gray-300">
+                <Link to="/battleground" className="text-cyan-600 dark:text-cyan-500 hover:underline font-medium">
+                  View full leaderboard →
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -549,27 +741,55 @@ const MainDashboard = () => {
         <section className="neo-glass rounded-3xl p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Next Milestones</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300">Goals curated from your practice and battles</p>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Next Milestones</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Goals curated from your practice and battles</p>
             </div>
             <Link to="/resources">
-              <Button variant="outline" className="rounded-full border-slate-400 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-white dark:hover:bg-slate-800">
+              <Button className="mt-6 w-full md:mt-0 md:w-auto rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white">
                 View Learning Plan
               </Button>
             </Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {["Complete 5 SQL challenges", "Win 3 battleground matches", "Finish Python fundamentals"].map((goal, idx) => (
-              <div key={goal} className="rounded-2xl bg-white/90 p-4 shadow-sm transition dark:bg-slate-900/60">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#008B8B]/15 text-[#008B8B] dark:bg-white/10 dark:text-white">
-                  {idx === 0 ? <Award className="h-5 w-5" /> : idx === 1 ? <Trophy className="h-5 w-5" /> : <Target className="h-5 w-5" />}
+            {(() => {
+              const goals = [];
+              if (solvedCount < 5) {
+                goals.push({ text: `Complete ${5 - solvedCount} more challenge${5 - solvedCount > 1 ? 's' : ''}`, icon: Award, progress: solvedCount, target: 5 });
+              }
+              if (battlegroundStats.totalWins < 3) {
+                goals.push({ text: `Win ${3 - battlegroundStats.totalWins} more battleground match${3 - battlegroundStats.totalWins > 1 ? 'es' : ''}`, icon: Trophy, progress: battlegroundStats.totalWins, target: 3 });
+              }
+              if (streakHighlights.length === 0 || (streakHighlights[0]?.current || 0) < 7) {
+                goals.push({ text: `Build a 7-day streak`, icon: Target, progress: streakHighlights[0]?.current || 0, target: 7 });
+              }
+              
+              if (goals.length === 0) {
+                return (
+                  <div className="md:col-span-3 rounded-2xl bg-white dark:bg-[#32363C] p-6 text-center shadow-sm dark:bg-gray-900/60">
+                    <Award className="h-12 w-12 mx-auto mb-3 text-cyan-600 dark:text-cyan-500" />
+                    <p className="font-medium text-gray-800 dark:text-gray-100">Great progress!</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      Keep practicing to unlock new achievements.
+                    </p>
+                  </div>
+                );
+              }
+              
+              return goals.slice(0, 3).map((goal, idx) => (
+                <div key={goal.text} className="rounded-2xl bg-white dark:bg-[#32363C] p-4 shadow-sm transition dark:bg-gray-900/60">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/15 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+                    <goal.icon className="h-5 w-5" />
+                  </div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">{goal.text}</p>
+                  <div className="mt-3">
+                    <Progress value={(goal.progress / goal.target) * 100} className="h-2" />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {goal.progress} / {goal.target}
+                    </p>
+                  </div>
                 </div>
-                <p className="font-medium text-slate-800 dark:text-slate-100">{goal}</p>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Stay consistent to unlock badges and climb the global leaderboard.
-                </p>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </section>
       </div>
