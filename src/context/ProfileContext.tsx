@@ -52,6 +52,7 @@ export interface ProfileData {
   profession: string;
   company: string;
   showPhone: boolean;
+  clerkId?: string;
   banner?: string;
   bio?: string;
   skills?: string[];
@@ -68,6 +69,7 @@ const DEFAULT_PROFILE: ProfileData = {
   profession: "",
   company: "",
   showPhone: false,
+  clerkId: "",
   banner: "",
   bio: "",
   skills: [],
@@ -85,9 +87,9 @@ interface ProfileContextType {
 
 export const ProfileContext = createContext<ProfileContextType>({
   profile: DEFAULT_PROFILE,
-  setProfile: () => {},
+  setProfile: () => { },
   isLoading: false,
-  fetchProfile: async () => {},
+  fetchProfile: async () => { },
   error: null,
 });
 
@@ -110,7 +112,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setError(null);
       const token = await getToken();
       const response = await axios.get(`https://server.datasenseai.com/battleground-profile/${clerkId}`, {
-    //   const response = await axios.get(`http://localhost:4000/battleground-profile/${clerkId}`, {
+          // const response = await axios.get(`http://localhost:4000/battleground-profile/${clerkId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -118,12 +120,13 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         firstName: response.data?.firstname || user?.firstName || "",
         lastName: response.data?.lastname || user?.lastName || "",
         email: response.data?.email || user?.emailAddresses?.[0]?.emailAddress || "",
-        phone: response.data?.mobile || "",
+        phone: response.data?.phone || response.data?.mobile || "",
         avatar: response.data?.avatar || defaultAvatar,
         banner: response.data?.banner || defaultBanner,
         profession: response.data?.profession || "",
         company: response.data?.company || "",
         showPhone: typeof response.data?.showPhone === "boolean" ? response.data.showPhone : false,
+        clerkId: response.data?.clerkId || user?.id || "",
         bio: typeof response.data?.bio === "string" ? response.data.bio : "",
         skills: normalizeSkills(response.data?.skills),
         credentials: normalizeRecords(response.data?.credentials),
@@ -150,6 +153,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
           skills: normalizeSkills(parsedProfile.skills),
           credentials: normalizeRecords(parsedProfile.credentials),
           projects: normalizeRecords(parsedProfile.projects),
+          clerkId: parsedProfile.clerkId || user?.id || "",
         });
       } else {
         setProfile({
@@ -157,6 +161,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
           firstName: user?.firstName || "",
           lastName: user?.lastName || "",
           email: user?.emailAddresses?.[0]?.emailAddress || "",
+          clerkId: user?.id || "",
         });
       }
     } finally {

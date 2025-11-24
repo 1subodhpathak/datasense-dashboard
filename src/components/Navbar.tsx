@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useUser, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useUser, SignInButton, UserButton, useClerk } from "@clerk/clerk-react";
 import { Moon, Sun } from "lucide-react";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { useLocation, Link } from "react-router-dom";
 
 const Navbar = () => {
   const { isLoaded, isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const isDark = theme === "dark";
@@ -39,6 +40,20 @@ const Navbar = () => {
 
   const handleBackToHome = () => {
     window.location.href = "https://practice.datasenseai.com";
+  };
+
+  const handleProtectedNavigation = (event: React.MouseEvent<HTMLElement>, targetUrl: string) => {
+    if (!isSignedIn) {
+      event.preventDefault();
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: targetUrl,
+          afterSignUpUrl: targetUrl,
+        });
+      } else {
+        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(targetUrl)}`;
+      }
+    }
   };
 
   const isDashboardPage = location.pathname === "/dashboard" || location.pathname === "/";
@@ -66,6 +81,7 @@ const Navbar = () => {
               } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${
                 isDashboardPage ? "after:w-full" : "hover:after:w-full"
               }`}
+              onClick={(e) => handleProtectedNavigation(e, "/dashboard")}
             >
               Dashboard
             </Link>
@@ -76,6 +92,7 @@ const Navbar = () => {
                 isPracticePage ? "after:w-full" : "hover:after:w-full"
               }`}
               href="https://practice.datasenseai.com/practice-area?subject=sql"
+              onClick={(e) => handleProtectedNavigation(e, "https://practice.datasenseai.com/practice-area?subject=sql")}
             >
               Practice
             </a>
@@ -86,6 +103,7 @@ const Navbar = () => {
                 isLiveQuizPage ? "after:w-full" : "hover:after:w-full"
               }`}
               href="https://practice.datasenseai.com/live-events"
+              onClick={(e) => handleProtectedNavigation(e, "https://practice.datasenseai.com/live-events")}
             >
               Live Quiz
             </a>
@@ -96,6 +114,7 @@ const Navbar = () => {
                 isCreateQuizPage ? "after:w-full" : "hover:after:w-full"
               }`}
               href="https://assessment.datasenseai.com/"
+              onClick={(e) => handleProtectedNavigation(e, "https://assessment.datasenseai.com/")}
             >
               Create Quiz
             </a>

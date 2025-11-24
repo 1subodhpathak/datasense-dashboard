@@ -1,27 +1,48 @@
 import { useContext, useMemo, useState, useRef, useEffect } from "react";
-import { ProfileContext } from "@/context/ProfileContext";
+import { ProfileContext, type ProfileData } from "@/context/ProfileContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Building2, BriefcaseBusiness, Share2, Edit2, Facebook, Linkedin } from "lucide-react";
+import { MapPin, Building2, BriefcaseBusiness, Share2, Edit2, Facebook, Linkedin, Copy, Mail, Phone } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ProfileEdit from "@/pages/ProfileEdit";
+import { Button } from "@/components/ui/button";
 
 const fallbackAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 
-const ProfileHero = () => {
-  const { profile, isLoading } = useContext(ProfileContext);
+interface ProfileHeroProps {
+  profileData?: ProfileData | null;
+  isLoadingOverride?: boolean;
+  readOnly?: boolean;
+  shareUrlOverride?: string;
+}
+
+const ProfileHero = ({
+  profileData,
+  isLoadingOverride,
+  readOnly = false,
+  shareUrlOverride,
+}: ProfileHeroProps) => {
+  const { profile: contextProfile, isLoading } = useContext(ProfileContext);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const bannerSrc = profile?.banner && profile.banner.trim().length > 0 ? profile.banner : null;
-  const avatarSrc = profile?.avatar || fallbackAvatar;
+  const activeProfile = profileData ?? contextProfile;
+  const loadingState = typeof isLoadingOverride === "boolean" ? isLoadingOverride : isLoading;
 
-  // Get current portfolio page URL
-  const portfolioUrl = useMemo(() => {
+  const bannerSrc = activeProfile?.banner && activeProfile.banner.trim().length > 0 ? activeProfile.banner : null;
+  const avatarSrc = activeProfile?.avatar || fallbackAvatar;
+
+  // Determine shareable URL
+  const shareLink = useMemo(() => {
+    if (shareUrlOverride) return shareUrlOverride;
     const baseUrl = window.location.origin;
+    if (activeProfile?.clerkId) {
+      return `${baseUrl}/p/${activeProfile.clerkId}`;
+    }
     return `${baseUrl}${location.pathname}`;
-  }, [location.pathname]);
+  }, [shareUrlOverride, activeProfile?.clerkId, location.pathname]);
 
   // Close share menu when clicking outside
   useEffect(() => {
@@ -42,41 +63,48 @@ const ProfileHero = () => {
 
   // Share functions
   const handleShareFacebook = () => {
-    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(portfolioUrl)}`;
+    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`;
     window.open(shareUrl, "_blank");
     setShowShareMenu(false);
   };
 
   const handleShareLinkedIn = () => {
-    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(portfolioUrl)}`;
+    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink)}`;
     window.open(shareUrl, "_blank");
     setShowShareMenu(false);
   };
 
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (error) {
+      setCopied(false);
+    }
+  };
+
   const fullName = useMemo(() => {
-    const first = profile?.firstName?.trim();
-    const last = profile?.lastName?.trim();
+    const first = activeProfile?.firstName?.trim();
+    const last = activeProfile?.lastName?.trim();
     if (first || last) {
       return `${first ?? ""}${first && last ? " " : ""}${last ?? ""}`;
     }
     return "Your Name";
-  }, [profile?.firstName, profile?.lastName]);
+  }, [activeProfile?.firstName, activeProfile?.lastName]);
 
-  if (isLoading) {
+  if (loadingState) {
     return (
-      <section className="overflow-hidden rounded-3xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg">
-        <div className="h-40 w-full bg-gray-200/60 animate-pulse sm:h-48 md:h-56 lg:h-64" />
-        <div className="space-y-6 px-6 pb-6 pt-8 md:px-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-28 rounded-2xl bg-gray-200/70 animate-pulse md:size-32" />
-              <div className="space-y-3">
-                <div className="h-6 w-48 rounded-full bg-gray-200/80 animate-pulse" />
-                <div className="h-4 w-72 rounded-full bg-gray-200/70 animate-pulse" />
-                <div className="h-4 w-56 rounded-full bg-gray-200/60 animate-pulse" />
-              </div>
-            </div>
-            <div className="h-6 w-64 rounded-full bg-gray-200/60 animate-pulse" />
+      <section className="overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg">
+        <div className="h-32 w-full bg-gray-200/60 animate-pulse" />
+        <div className="px-6 pb-6">
+          <div className="-mt-12 mb-4 flex items-end justify-between">
+             <div className="size-24 rounded-full bg-gray-200/70 animate-pulse border-4 border-white dark:border-[#32363C]" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-6 w-48 rounded-full bg-gray-200/80 animate-pulse" />
+            <div className="h-4 w-full rounded-full bg-gray-200/70 animate-pulse" />
+            <div className="h-4 w-2/3 rounded-full bg-gray-200/60 animate-pulse" />
           </div>
         </div>
       </section>
@@ -84,8 +112,10 @@ const ProfileHero = () => {
   }
 
   return (
-    <section className="w-full overflow-hidden rounded-3xl border border-gray-300 dark:border-gray-600/20 bg-white dark:bg-[#32363C] shadow-lg dark:border-gray-600 dark:bg-[#32363C]">
-      <div className="h-28 w-full bg-gray-200 sm:h-32 md:h-36 lg:h-40">
+    <section className="group relative w-full overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600/50 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
+      
+      {/* 1. Cover Photo Area */}
+      <div className="h-36 w-full bg-gray-100 dark:bg-[#2A2F36]">
         {bannerSrc ? (
           <img src={bannerSrc} alt="Profile banner" className="h-full w-full object-cover" />
         ) : (
@@ -93,98 +123,129 @@ const ProfileHero = () => {
         )}
       </div>
 
-      <div className="flex flex-col gap-6 px-6 py-6 md:px-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:gap-6 w-full md:w-auto">
-            <Avatar className="size-24 flex-shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-md md:size-28 dark:border-gray-600 dark:bg-[#2f2f2f]">
-              <AvatarImage src={avatarSrc} alt={fullName} />
-              <AvatarFallback className="bg-gray-200 text-lg font-semibold text-gray-900 dark:bg-[#2f2f2f] dark:text-white">
-                {fullName
-                  .split(" ")
-                  .map((part) => part.charAt(0))
-                  .join("") || "U"}
-              </AvatarFallback>
-            </Avatar>
+      {/* 2. Main Content Area */}
+      <div className="px-6 pb-6">
+        
+        {/* Top Row: Avatar (Left) and Buttons (Right) */}
+        <div className="flex items-end justify-between -mt-12 mb-5">
+          {/* Avatar - Overlapping the banner */}
+          <Avatar className="size-24 rounded-full border-[4px] border-white bg-white shadow-sm dark:border-[#32363C] dark:bg-[#2f2f2f]">
+            <AvatarImage src={avatarSrc} alt={fullName} className="object-cover" />
+            <AvatarFallback className="bg-gray-100 text-xl font-bold text-gray-700 dark:bg-[#2f2f2f] dark:text-white">
+              {fullName.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
 
-            <div className="flex-1 w-full space-y-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white md:text-2xl break-words">{fullName}</h1>
-                {/* <Badge className="rounded-full border border-dsb-accent/40 bg-dsb-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-500">
-                  Verified
-                </Badge> */}
-              </div>
-              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-300 break-words">
-                {profile?.bio?.trim()
-                  ? profile.bio.trim()
-                  : "Your bio here..."}
-              </p>
-
-              <div className="flex flex-col gap-2 text-sm text-gray-500 dark:text-gray-300">
-                {profile?.profession && (
-                  <span className="inline-flex items-center gap-2 flex-wrap">
-                    <BriefcaseBusiness className="h-4 w-4 flex-shrink-0 text-cyan-600 dark:text-cyan-500" />
-                    <span className="break-words">{profile.profession}</span>
-                  </span>
-                )}
-                {profile?.company && (
-                  <span className="inline-flex items-center gap-2 flex-wrap">
-                    <Building2 className="h-4 w-4 flex-shrink-0 text-cyan-600 dark:text-cyan-500" />
-                    <span className="break-words">{profile.company}</span>
-                  </span>
-                )}
-                {profile?.phone && profile.showPhone && (
-                  <span className="inline-flex items-center gap-2 flex-wrap">
-                    <MapPin className="h-4 w-4 flex-shrink-0 text-cyan-600 dark:text-cyan-500" />
-                    <span className="break-words">{profile.phone}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 flex-shrink-0 md:ml-auto">
+          {/* Action Buttons - Aligned to the right */}
+          <div className="flex gap-2 pb-1">
             <div className="relative" ref={shareMenuRef}>
-              <button
-                onClick={() => setShowShareMenu(!showShareMenu)}
-                className="flex items-center justify-center rounded-lg border border-cyan-600/20 dark:border-cyan-500/20 bg-cyan-600/10 dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-500 transition-all hover:bg-cyan-600/20 dark:hover:bg-cyan-500/20 hover:border-cyan-600/40 dark:hover:border-cyan-500/40"
-                aria-label="Share profile"
+              <Button
+                size="sm"
+                onClick={() => setShowShareMenu((prev) => !prev)}
+                className="h-9 gap-2 rounded-lg bg-cyan-600/10 px-3 text-xs font-semibold text-cyan-700 shadow-none hover:bg-cyan-600/20 dark:bg-cyan-500/10 dark:text-cyan-400"
               >
-                <Share2 className="h-5 w-5" />
-              </button>
-              
+                <Share2 className="h-3.5 w-3.5" />
+              </Button>
+
+              {/* Dropdown Menu */}
               {showShareMenu && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg">
-                  <div className="p-1">
-                    <button
-                      onClick={handleShareFacebook}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <Facebook className="h-4 w-4 text-[#1877F2]" />
-                      Share on Facebook
-                    </button>
-                    <button
-                      onClick={handleShareLinkedIn}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <Linkedin className="h-4 w-4 text-[#0077B5]" />
-                      Share on LinkedIn
-                    </button>
-                  </div>
+                <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-600 dark:bg-[#2A2F36]">
+                  <button
+                    onClick={handleShareFacebook}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    <Facebook className="h-4 w-4 text-[#1877F2]" />
+                    Facebook
+                  </button>
+                  <button
+                    onClick={handleShareLinkedIn}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    <Linkedin className="h-4 w-4 text-[#0077B5]" />
+                    LinkedIn
+                  </button>
+                  <button
+                    onClick={handleCopyShareLink}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    <Copy className="h-4 w-4" />
+                    {copied ? "Copied!" : "Copy link"}
+                  </button>
                 </div>
               )}
             </div>
-            
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="flex items-center justify-center rounded-lg border border-cyan-600/20 dark:border-cyan-500/20 bg-cyan-600/10 dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-500 transition-all hover:bg-cyan-600/20 dark:hover:bg-cyan-500/20 hover:border-cyan-600/40 dark:hover:border-cyan-500/40"
-              aria-label="Edit profile"
-            >
-              <Edit2 className="h-5 w-5" />
-            </button>
+
+            {!readOnly && (
+              <Button
+                size="sm"
+                onClick={() => setIsEditOpen(true)}
+                className="h-9 gap-2 rounded-lg bg-cyan-600/10 px-3 text-xs font-semibold text-cyan-700 shadow-none hover:bg-cyan-600/20 dark:bg-cyan-500/10 dark:text-cyan-400"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Section: Text Info */}
+        <div className="space-y-4">
+          {/* Name & Bio */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words">
+              {fullName}
+            </h1>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300 max-w-prose break-words">
+              {activeProfile?.bio?.trim() || "Add a bio to tell people about yourself..."}
+            </p>
+          </div>
+
+          {/* Skills - Horizontal Scrollable or Wrap */}
+          {activeProfile?.skills && activeProfile.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {activeProfile.skills.slice(0, 8).map((skill) => (
+                <span
+                  key={skill}
+                  className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-600/50 dark:bg-[#2A2F36] dark:text-gray-300"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* <div className="h-px w-full bg-gray-100 dark:bg-gray-700" /> */}
+
+          {/* Meta Details (Occupation, Company, Location) */}
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-5 pt-1 text-sm text-gray-600 dark:text-gray-400">
+            {activeProfile?.profession && (
+              <div className="flex items-center gap-2">
+                <BriefcaseBusiness className="h-4 w-4 text-cyan-600 dark:text-cyan-500" />
+                <span className="font-medium">{activeProfile.profession}</span>
+              </div>
+            )}
+            {activeProfile?.company && (
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-cyan-600 dark:text-cyan-500" />
+                <span className="font-medium">{activeProfile.company}</span>
+              </div>
+            )}
+            {activeProfile?.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-cyan-600 dark:text-cyan-500" />
+                <span className="font-medium">{activeProfile.email}</span>
+              </div>
+            )}
+            {activeProfile?.phone && activeProfile.showPhone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-cyan-600 dark:text-cyan-500" />
+                <span className="font-medium">{activeProfile.phone}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <ProfileEdit open={isEditOpen} onOpenChange={setIsEditOpen} />
+
+      {!readOnly && <ProfileEdit open={isEditOpen} onOpenChange={setIsEditOpen} />}
     </section>
   );
 };

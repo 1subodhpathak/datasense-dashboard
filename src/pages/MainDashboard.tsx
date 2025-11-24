@@ -93,13 +93,13 @@ const checkIfQuizCompleted = async (quiz: any, userEmail: string): Promise<boole
   try {
     const response = await axios.get(url);
     const leaderboard = response.data.leaderboard;
-    
+
     // Check both timely and late users
     const allUsers = [
       ...(leaderboard.timelyUsers || []),
       ...(leaderboard.lateUsers || [])
     ];
-    
+
     return allUsers.some((leaderboardUser: any) =>
       leaderboardUser.userId && leaderboardUser.userId.split(',')[0].trim() === userEmail
     );
@@ -174,7 +174,7 @@ const MainDashboard = () => {
                 solvedQuestion,
               };
             }) || [];
-          
+
           processedPractice = {
             username: user.username || user.firstName || "User",
             email: user.primaryEmailAddress?.emailAddress || "user@example.com",
@@ -206,7 +206,7 @@ const MainDashboard = () => {
           const responseData = streakResponse.value.data;
           // Handle both direct data and nested streakData structure
           const apiStreakData = responseData.streakData || responseData;
-          
+
           // Convert subjectStreaks from Map or Object to Map
           let subjectStreaksMap = new Map();
           if (apiStreakData.subjectStreaks) {
@@ -488,19 +488,19 @@ const MainDashboard = () => {
                   : "Your learning hub is ready."}
               </h2>
               <div className="flex items-center gap-4 w-full">
-              <p className="mt-2 text-base text-white/95">
-                Monitor every win, streak, and milestone in one place. Stay on pace with personalised insights and jump back into practice whenever you're ready.
-              </p>
-              <Link to="https://practice.datasenseai.com/practice-area?subject=sql" target="_blank" className="flex-shrink-0">
-                <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
-                  Continue practice
-                </Button>
-              </Link>
-              <Link to="#" className="flex-shrink-0">
-                <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
-                  Continue Learning
-                </Button>
-              </Link>
+                <p className="mt-2 text-base text-white/95">
+                  Monitor every win, streak, and milestone in one place. Stay on pace with personalised insights and jump back into practice whenever you're ready.
+                </p>
+                <Link to="https://practice.datasenseai.com/practice-area?subject=sql" target="_blank" className="flex-shrink-0">
+                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                    Continue practice
+                  </Button>
+                </Link>
+                <Link to="#" className="flex-shrink-0">
+                  <Button className="bg-white text-[#12325d] hover:bg-white/95 font-semibold px-6 py-5 rounded-lg whitespace-nowrap">
+                    Continue Learning
+                  </Button>
+                </Link>
               </div>
               {/* <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-5 text-white/90 text-base">
                 <div className="flex items-center gap-2">
@@ -639,9 +639,8 @@ const MainDashboard = () => {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
-                        submission.isCorrect ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-red-500/20 text-red-600 dark:text-red-400"
-                      }`}
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${submission.isCorrect ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-red-500/20 text-red-600 dark:text-red-400"
+                        }`}
                     >
                       {submission.isCorrect ? "AC" : "WA"}
                     </span>
@@ -652,9 +651,9 @@ const MainDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800">
+                  {/* <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800">
                     Review
-                  </Button>
+                  </Button> */}
                 </div>
               ))}
               {!recentSubmissions.length && (
@@ -711,7 +710,7 @@ const MainDashboard = () => {
               </div>
             </div>
             <Link to="/battleground">
-              <Button className="mt-6 w-full rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white">
+              <Button className="mt-6 w-full rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white/95">
                 View Detailed Battleground
               </Button>
             </Link>
@@ -772,7 +771,7 @@ const MainDashboard = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300">Goals curated from your practice and battles</p>
             </div>
             <Link to="/resources">
-              <Button className="mt-6 w-full md:mt-0 md:w-auto rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white">
+              <Button className="mt-6 w-full md:mt-0 md:w-auto rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white/95">
                 View Learning Plan
               </Button>
             </Link>
@@ -789,7 +788,7 @@ const MainDashboard = () => {
               if (streakHighlights.length === 0 || (streakHighlights[0]?.current || 0) < 7) {
                 goals.push({ text: `Build a 7-day streak`, icon: Target, progress: streakHighlights[0]?.current || 0, target: 7 });
               }
-              
+
               if (goals.length === 0) {
                 return (
                   <div className="md:col-span-3 rounded-2xl bg-white dark:bg-[#32363C] p-6 text-center shadow-sm dark:bg-gray-900/60">
@@ -801,7 +800,7 @@ const MainDashboard = () => {
                   </div>
                 );
               }
-              
+
               return goals.slice(0, 3).map((goal, idx) => (
                 <div key={goal.text} className="rounded-2xl bg-white dark:bg-[#32363C] p-4 shadow-sm transition dark:bg-gray-900/60">
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/15 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">

@@ -218,7 +218,7 @@ const Portfolio = () => {
                     <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-600/40 bg-white dark:bg-[#32363C] p-4 text-sm text-gray-500 dark:text-gray-400">
                       You haven’t shared any credentials yet.
                     </div>
-                    <Button className="w-full rounded-lg bg-cyan-600 dark:bg-cyan-500 px-5 py-3 text-base font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600">
+                    <Button className="w-full rounded-lg bg-cyan-600 dark:bg-cyan-500 px-5 py-3 text-base font-semibold text-white/95 hover:bg-cyan-700 dark:hover:bg-cyan-600">
                       Add Credential
                     </Button>
                   </div>
@@ -321,7 +321,7 @@ const Portfolio = () => {
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{task.description}</p>
                       <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{task.summary}</p>
-                      {task.highlights && task.highlights.length > 0 && (
+                      {task.id !== "skills" && task.highlights && task.highlights.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {task.highlights.slice(0, 5).map((item) => (
                             <span
@@ -358,7 +358,7 @@ const Portfolio = () => {
               </div>
               <Button
                 size="sm"
-                className="bg-cyan-600 dark:bg-cyan-500 px-5 py-2 text-sm font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600"
+                className="bg-cyan-600 dark:bg-cyan-500 px-5 py-2 text-sm font-semibold text-white/95 rounded-lg hover:bg-cyan-700 dark:hover:bg-cyan-600"
               >
                 Add new project
               </Button>
@@ -406,7 +406,7 @@ const Portfolio = () => {
             </CardHeader>
             <CardContent className="space-y-3 text-base leading-relaxed text-gray-600 dark:text-gray-300">
               <p>Share your expertise by writing breakdowns of your projects. Well-documented stories stand out on your portfolio.</p>
-              <Button className="rounded-lg bg-cyan-600 dark:bg-cyan-500 px-5 py-2 text-sm font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600">
+              <Button className="rounded-lg bg-cyan-600 dark:bg-cyan-500 px-5 py-2 text-sm font-semibold text-white/95 hover:bg-cyan-700 dark:hover:bg-cyan-600">
                 Draft a portfolio story
               </Button>
             </CardContent>
@@ -431,7 +431,7 @@ const Portfolio = () => {
             </CardHeader>
             <CardContent className="space-y-3 text-base leading-relaxed text-gray-600 dark:text-gray-300">
               <p>Explore top-performing portfolios from the community and borrow storytelling patterns that resonate.</p>
-              <Button className="rounded-lg bg-cyan-600 dark:bg-cyan-500 px-6 py-3 text-base font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600">
+              <Button className="rounded-lg bg-cyan-600 dark:bg-cyan-500 px-6 py-3 text-base font-semibold text-white/95 hover:bg-cyan-700 dark:hover:bg-cyan-600">
                 Browse exemplar portfolios
               </Button>
             </CardContent>
