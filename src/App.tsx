@@ -17,6 +17,7 @@ import { ThemeProvider } from './lib/theme-context'
 import { SidebarProvider } from './lib/sidebar-context'
 import Profile from "./pages/Profile";
 import Portfolio from "./pages/Portfolio";
+import PublicPortfolio from "./pages/PublicPortfolio";
 import Challenge from "./pages/Challenge";
 import ProfileEdit from "./pages/ProfileEdit";
 import MyLearnings from "./pages/MyLearnings";
@@ -82,8 +83,8 @@ const App = () => {
                   <BrowserRouter>
                   <Routes>
                     {/* Public route - accessible without login */}
-                    {/* {  <Route path="/" element={<iframe src="/home.html" style={{ width: '100%', height: '100vh', border: 'none' }} title="External Page" />} /> } */}
-                    
+                    <Route path="/p/:clerkId" element={<PublicPortfolio />} />
+
                     {/* Protected routes - require authentication */}
                     
                     {/* Main professional dashboard */}

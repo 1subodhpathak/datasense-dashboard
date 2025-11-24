@@ -31,6 +31,41 @@ const diceBearStyles = [
     { name: "adventurer", lib: adventurer },
 ];
 
+const FALLBACK_SKILLS = [
+    "Python",
+    "Python Libraries",
+    "R",
+    "SQL",
+    "MySQL",
+    "PostgreSQL",
+    "Excel",
+    "Tableau",
+    "Power BI",
+    "Looker Studio",
+    "Visual Studio Code",
+    "Google Colab",
+    "Google Kubernetes",
+    "Git & GitHub",
+    "GitLab",
+    "Postman",
+    "MongoDB",
+    "Snowflake",
+    "Databricks",
+    "BigQuery",
+    "AWS",
+    "Azure",
+    "Google Cloud Platform",
+    "Docker",
+    "Apache Spark",
+    "Hadoop",
+    "Airflow",
+    "Figma",
+    "PyCharm",
+    "Node.js"
+] as const;
+
+const MAX_SELECTED_SKILLS = 6;
+
 interface ProfileApiData {
     avatar?: string;
     banner?: string;
@@ -38,13 +73,16 @@ interface ProfileApiData {
     lastname: string;
     email?: string;
     mobile?: string;
+    phone?: string;
     profession?: string;
     company?: string;
+    clerkId?: string;
     showPhone?: boolean;
     bio?: string;
     skills?: unknown[];
     credentials?: unknown[];
     projects?: unknown[];
+    allowedSkills?: string[];
 }
 
 interface AvatarData {
@@ -92,20 +130,28 @@ const normalizeRecordsForContext = (entries?: unknown[]): PortfolioRecord[] => {
         .filter((value): value is PortfolioRecord => Boolean(value));
 };
 
+const resolveApiPhone = (data?: ProfileApiData | null): string => {
+    if (!data) return "";
+    const rawPhone = typeof data.phone === "string" && data.phone.trim().length > 0
+        ? data.phone
+        : (typeof data.mobile === "string" ? data.mobile : "");
+    return rawPhone ? rawPhone.trim() : "";
+};
+
 const mapToContextProfile = (data: ProfileApiData | null): ContextProfileData | null => {
     if (!data) return null;
     // If avatar/banner is null, empty string, or undefined, use default
     // This ensures deleted images show as default in ProfileHero
     const avatarValue = data.avatar && data.avatar.trim().length > 0 ? data.avatar : DEFAULT_AVATAR;
     const bannerValue = data.banner && data.banner.trim().length > 0 ? data.banner : DEFAULT_BANNER;
-    
+
     return {
         avatar: avatarValue,
         banner: bannerValue,
         firstName: data.firstname || "",
         lastName: data.lastname || "",
         email: data.email || "",
-        phone: data.mobile || "",
+        phone: resolveApiPhone(data),
         profession: data.profession || "",
         company: data.company || "",
         showPhone: Boolean(data.showPhone),
@@ -113,6 +159,7 @@ const mapToContextProfile = (data: ProfileApiData | null): ContextProfileData | 
         skills: normalizeSkillsForContext(data.skills),
         credentials: normalizeRecordsForContext(data.credentials),
         projects: normalizeRecordsForContext(data.projects),
+        clerkId: data.clerkId || "",
     };
 };
 
@@ -123,7 +170,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const isControlled = typeof open === "boolean" && typeof onOpenChange === "function";
     const [internalOpen, setInternalOpen] = useState(true);
     const dialogOpen = isControlled ? (open as boolean) : internalOpen;
-    
+
     const handleDialogChange = (value: boolean) => {
         if (isControlled && onOpenChange) {
             onOpenChange(value);
@@ -134,11 +181,11 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             }
         }
     };
-    
+
     const closeDialog = () => handleDialogChange(false);
     const inputClass =
         "h-11 rounded-xl border border-dsb-neutral3/40 bg-white/90 text-slate-900 placeholder:text-dsb-neutral2 focus:border-dsb-accent focus:ring-0 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/50";
-    
+
     // Profile data state
     const [avatar, setAvatar] = useState<string>(DEFAULT_AVATAR);
     const [banner, setBanner] = useState<string>(DEFAULT_BANNER);
@@ -150,16 +197,18 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const [company, setCompany] = useState("");
     const [showPhone, setShowPhone] = useState(false);
     const [bio, setBio] = useState("");
-    
+    const [availableSkills, setAvailableSkills] = useState<string[]>([...FALLBACK_SKILLS]);
+
     // UI states
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [showAllAvatarsModal, setShowAllAvatarsModal] = useState(false);
     const [selectedStyle, setSelectedStyle] = useState("avataaars");
-    
+
     // Verification states
     const [emailVerified, setEmailVerified] = useState(false);
     const [phoneVerified, setPhoneVerified] = useState(false);
@@ -168,7 +217,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const [verifyingEmail, setVerifyingEmail] = useState(false);
     const [verifyingPhone, setVerifyingPhone] = useState(false);
     const [verificationSent, setVerificationSent] = useState(false);
-    
+
     // Media file states
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -176,11 +225,11 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const [bannerPreview, setBannerPreview] = useState<string | null>(null);
     const [deleteAvatar, setDeleteAvatar] = useState(false);
     const [deleteBanner, setDeleteBanner] = useState(false);
-    
+
     // Avatar generation states
     const [avatarSeeds, setAvatarSeeds] = useState<Record<string, string>>({});
     const [generatedAvatars, setGeneratedAvatars] = useState<Record<string, AvatarData[]>>({});
-    
+
     // Image cropping states
     const [showCropModal, setShowCropModal] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
@@ -200,7 +249,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         try {
             setLoading(true);
             setError(null);
-            
+
             const clerkId = user?.id;
             const response = await fetch(`${API_ENDPOINT}/${clerkId}`, {
                 method: 'GET',
@@ -211,32 +260,46 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
 
             if (response.ok) {
                 const profileData: ProfileApiData = await response.json();
-                
+
                 // Map API response to component state
                 setAvatar(profileData.avatar || DEFAULT_AVATAR);
                 setBanner(profileData.banner || DEFAULT_BANNER);
                 setFirstName(profileData.firstname || "");
                 setLastName(profileData.lastname || "");
-                setEmail(profileData.email || "");
-                setPhone(profileData.mobile || "");
+                const resolvedEmail = profileData.email && profileData.email.trim().length > 0
+                    ? profileData.email
+                    : (user?.primaryEmailAddress?.emailAddress || "");
+                setEmail(resolvedEmail);
+                setPhone(resolveApiPhone(profileData));
                 setProfession(profileData.profession || "");
                 setCompany(profileData.company || "");
                 setShowPhone(profileData.showPhone || false);
                 setBio(profileData.bio || "");
-                
+                const normalizedSkills = normalizeSkillsForContext(profileData.skills);
+                const receivedAllowedSkills = Array.isArray(profileData.allowedSkills) && profileData.allowedSkills.length > 0
+                    ? profileData.allowedSkills
+                    : [...FALLBACK_SKILLS];
+                if (!profileData.clerkId && user?.id) {
+                    profileData.clerkId = user.id;
+                }
+                setSelectedSkills(normalizedSkills);
+                setAvailableSkills(receivedAllowedSkills);
+
                 // Reset deletion flags
                 setDeleteAvatar(false);
                 setDeleteBanner(false);
-                
+
                 // Store original profile for comparison
-                setOriginalProfile(profileData);
-                
+                setOriginalProfile({ ...profileData, skills: normalizedSkills });
+
                 // Update context if available
                 setContextProfile(mapToContextProfile(profileData));
             } else if (response.status === 404) {
                 // Profile doesn't exist - use fallback/default values
                 console.log("Profile not found, using default values");
                 setOriginalProfile(null);
+                setSelectedSkills([]);
+                setAvailableSkills([...FALLBACK_SKILLS]);
             } else {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -244,6 +307,8 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             console.error('Error fetching profile:', err);
             setError("Failed to load profile data. Using default values.");
             setOriginalProfile(null);
+            setSelectedSkills([]);
+            setAvailableSkills([...FALLBACK_SKILLS]);
         } finally {
             setLoading(false);
         }
@@ -282,6 +347,10 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     }, [dialogOpen]);
 
     const isFormValid = email.trim() !== "" && /.+@.+\..+/.test(email);
+    const originalSkillsList = normalizeSkillsForContext(originalProfile?.skills);
+    const skillsChanged = JSON.stringify(originalSkillsList) !== JSON.stringify(selectedSkills);
+    const originalPhoneValue = resolveApiPhone(originalProfile);
+    const skillLimitReached = selectedSkills.length >= MAX_SELECTED_SKILLS;
     const isChanged = originalProfile ? (
         deleteAvatar ||
         deleteBanner ||
@@ -289,16 +358,17 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         bannerFile !== null ||
         avatarPreview !== null ||
         bannerPreview !== null ||
-        avatar !== (originalProfile.avatar || DEFAULT_AVATAR) || 
+        avatar !== (originalProfile.avatar || DEFAULT_AVATAR) ||
         banner !== (originalProfile.banner || DEFAULT_BANNER) ||
-        firstName !== (originalProfile.firstname || "") || 
-        lastName !== (originalProfile.lastname || "") || 
-        email !== (originalProfile.email || "") || 
-        phone !== (originalProfile.mobile || "") || 
-        profession !== (originalProfile.profession || "") || 
-        company !== (originalProfile.company || "") || 
+        firstName !== (originalProfile.firstname || "") ||
+        lastName !== (originalProfile.lastname || "") ||
+        email !== (originalProfile.email || "") ||
+        phone !== originalPhoneValue ||
+        profession !== (originalProfile.profession || "") ||
+        company !== (originalProfile.company || "") ||
         showPhone !== (originalProfile.showPhone || false) ||
-        bio !== (originalProfile.bio || "")
+        bio !== (originalProfile.bio || "") ||
+        skillsChanged
     ) : (
         deleteAvatar ||
         deleteBanner ||
@@ -306,13 +376,14 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         bannerFile !== null ||
         avatarPreview !== null ||
         bannerPreview !== null ||
-        firstName.trim() !== "" || 
-        lastName.trim() !== "" || 
-        email.trim() !== "" || 
-        phone.trim() !== "" || 
-        profession.trim() !== "" || 
+        firstName.trim() !== "" ||
+        lastName.trim() !== "" ||
+        email.trim() !== "" ||
+        phone.trim() !== "" ||
+        profession.trim() !== "" ||
         company.trim() !== "" ||
-        bio.trim() !== ""
+        bio.trim() !== "" ||
+        selectedSkills.length > 0
     );
 
     // Handle file upload for avatar
@@ -370,7 +441,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         if (avatar && avatar.startsWith('blob:')) {
             URL.revokeObjectURL(avatar);
         }
-        
+
         setAvatarFile(null);
         setAvatarPreview(null);
         setAvatar(DEFAULT_AVATAR);
@@ -385,45 +456,61 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         setDeleteBanner(true);
     };
 
+    const handleToggleSkill = (skill: string) => {
+        setSelectedSkills((prev) => {
+            if (prev.includes(skill)) {
+                return prev.filter((item) => item !== skill);
+            }
+            if (prev.length >= MAX_SELECTED_SKILLS) {
+                return prev;
+            }
+            return [...prev, skill];
+        });
+    };
+
+    const handleClearSkills = () => {
+        setSelectedSkills([]);
+    };
+
     // Generate DiceBear avatar
     const handleGenerateDiceBearAvatar = async (styleName: string) => {
-    try {
-        const seed = generateRandomSeed();
-        const mockAvatar = `https://api.dicebear.com/7.x/${styleName}/svg?seed=${seed}`;
-        
-        // Convert SVG URL to file
-        const avatarFile = await convertSvgToFile(mockAvatar, `${styleName}-${seed}.svg`);
-        setAvatarFile(avatarFile);
-        
-        // Set preview with data URL
-        const previewUrl = URL.createObjectURL(avatarFile);
-        setAvatarPreview(previewUrl);
-        setAvatar(previewUrl);
-        
-        setAvatarSeeds((prev) => ({
-            ...prev,
-            [styleName]: seed,
-        }));
-    } catch (error) {
-        setError('Failed to generate avatar. Please try again.');
-    }
-};
+        try {
+            const seed = generateRandomSeed();
+            const mockAvatar = `https://api.dicebear.com/7.x/${styleName}/svg?seed=${seed}`;
+
+            // Convert SVG URL to file
+            const avatarFile = await convertSvgToFile(mockAvatar, `${styleName}-${seed}.svg`);
+            setAvatarFile(avatarFile);
+
+            // Set preview with data URL
+            const previewUrl = URL.createObjectURL(avatarFile);
+            setAvatarPreview(previewUrl);
+            setAvatar(previewUrl);
+
+            setAvatarSeeds((prev) => ({
+                ...prev,
+                [styleName]: seed,
+            }));
+        } catch (error) {
+            setError('Failed to generate avatar. Please try again.');
+        }
+    };
 
     // Select DiceBear avatar style
     const handleSelectDiceBearAvatar = async (styleName: string) => {
         try {
             setSelectedStyle(styleName);
             const mockAvatar = `https://api.dicebear.com/7.x/${styleName}/svg?seed=${generateRandomSeed()}`;
-            
+
             // Convert SVG URL to file
             const avatarFile = await convertSvgToFile(mockAvatar, `${styleName}-avatar.svg`);
             setAvatarFile(avatarFile);
-            
+
             // Set preview with data URL
             const previewUrl = URL.createObjectURL(avatarFile);
             setAvatarPreview(previewUrl);
             setAvatar(previewUrl);
-            
+
             setShowAvatarModal(false);
         } catch (error) {
             setError('Failed to generate avatar. Please try again.');
@@ -432,24 +519,24 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
 
     // Select a specific avatar from the gallery
     const handleSelectSpecificAvatar = async (styleName: string, avatarData: AvatarData) => {
-    try {
-        setSelectedStyle(styleName);
-        
-        // Convert SVG URL to file
-        const avatarFile = await convertSvgToFile(avatarData.dataUrl, `${styleName}-${avatarData.seed}.svg`);
-        setAvatarFile(avatarFile);
-        
-        // Set preview with data URL
-        const previewUrl = URL.createObjectURL(avatarFile);
-        setAvatarPreview(previewUrl);
-        setAvatar(previewUrl);
-        
-        setShowAllAvatarsModal(false);
-        setShowAvatarModal(false);
-    } catch (error) {
-        setError('Failed to select avatar. Please try again.');
-    }
-};
+        try {
+            setSelectedStyle(styleName);
+
+            // Convert SVG URL to file
+            const avatarFile = await convertSvgToFile(avatarData.dataUrl, `${styleName}-${avatarData.seed}.svg`);
+            setAvatarFile(avatarFile);
+
+            // Set preview with data URL
+            const previewUrl = URL.createObjectURL(avatarFile);
+            setAvatarPreview(previewUrl);
+            setAvatar(previewUrl);
+
+            setShowAllAvatarsModal(false);
+            setShowAvatarModal(false);
+        } catch (error) {
+            setError('Failed to select avatar. Please try again.');
+        }
+    };
 
     // Handle regenerating avatar with same style but different seed
     const handleRegenerateAvatar = () => {
@@ -554,7 +641,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
     const makeClientCrop = async (crop: any) => {
         if (imgRef.current && crop.width && crop.height) {
             const croppedImageUrl = cropImage;
-            
+
             if (isCroppingAvatar) {
                 setAvatarPreview(croppedImageUrl);
                 setAvatar(croppedImageUrl || DEFAULT_AVATAR);
@@ -600,7 +687,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         try {
             const clerkId = user?.id;
             const formData = new FormData();
-            
+
             // Map component state to API expected field names
             formData.append('firstname', firstName);
             formData.append('lastname', lastName);
@@ -610,6 +697,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             if (company) formData.append('company', company);
             formData.append('showPhone', showPhone.toString());
             formData.append('bio', bio.trim());
+            formData.append('skills', JSON.stringify(selectedSkills));
 
             // Handle file uploads and deletions
             if (deleteAvatar) {
@@ -639,7 +727,15 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             }
 
             const savedProfile: ProfileApiData = await response.json();
-            
+            const updatedSkills = normalizeSkillsForContext(savedProfile.skills);
+            const updatedAllowedSkills = Array.isArray(savedProfile.allowedSkills) && savedProfile.allowedSkills.length > 0
+                ? savedProfile.allowedSkills
+                : [...FALLBACK_SKILLS];
+            savedProfile.skills = updatedSkills;
+            if (!savedProfile.clerkId && user?.id) {
+                savedProfile.clerkId = user.id;
+            }
+
             // Handle deleted images - if deletion was requested, ensure they're set to null/empty
             if (deleteAvatar) {
                 savedProfile.avatar = null;
@@ -647,7 +743,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             if (deleteBanner) {
                 savedProfile.banner = null;
             }
-            
+
             // Update local state to reflect deletions
             if (deleteAvatar) {
                 setAvatar(DEFAULT_AVATAR);
@@ -655,17 +751,19 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             if (deleteBanner) {
                 setBanner(DEFAULT_BANNER);
             }
-            
+
             // Update original profile reference
-            setOriginalProfile(savedProfile);
+            setOriginalProfile({ ...savedProfile, skills: updatedSkills });
             setBio(savedProfile.bio || "");
-            
+            setSelectedSkills(updatedSkills);
+            setAvailableSkills(updatedAllowedSkills);
+
             // Update context if available - this will trigger ProfileHero to re-render
             const contextData = mapToContextProfile(savedProfile);
             setContextProfile(contextData);
 
             setSuccess("Profile updated successfully!");
-            
+
             // Clear file states after successful save
             setAvatarFile(null);
             setBannerFile(null);
@@ -673,7 +771,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
             setBannerPreview(null);
             setDeleteAvatar(false);
             setDeleteBanner(false);
-            
+
             setTimeout(() => {
                 setSuccess(null);
                 closeDialog();
@@ -686,7 +784,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
         }
     };
 
-        // Add this utility function near the top of your component
+    // Add this utility function near the top of your component
     const convertSvgToFile = async (svgUrl: string, filename: string = 'avatar.svg'): Promise<File> => {
         try {
             const response = await fetch(svgUrl);
@@ -925,7 +1023,7 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                             </section>
 
                             <section className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-900 dark:text-white">Biography</label>
+                                <label className="text-sm font-semibold text-slate-900 dark:text-white">Bio</label>
                                 <textarea
                                     value={bio}
                                     onChange={(e) => setBio(e.target.value)}
@@ -935,6 +1033,68 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                                 <p className="text-xs text-dsb-neutral2 dark:text-white/50">
                                     This appears on your portfolio hero and helps peers understand your focus.
                                 </p>
+                            </section>
+
+                            <section className="space-y-3">
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-900 dark:text-white">Top skills</label>
+                                    <p className="text-xs text-dsb-neutral2 dark:text-white/50">
+                                        Highlight up to {MAX_SELECTED_SKILLS} skills that represent your strengths. These will appear on your public profile.
+                                    </p>
+                                </div>
+                                {selectedSkills.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedSkills.map((skill) => (
+                                            <span
+                                                key={`selected-${skill}`}
+                                                className="inline-flex items-center gap-2 rounded-lg border border-cyan-600/30 bg-cyan-600/10 px-3 py-1 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300"
+                                            >
+                                                {skill}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleSkill(skill)}
+                                                    className="text-xs text-cyan-700 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-white"
+                                                    aria-label={`Remove ${skill}`}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </span>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={handleClearSkills}
+                                            className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
+                                        >
+                                            Clear all
+                                        </button>
+                                    </div>
+                                )}
+                                {skillLimitReached && (
+                                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                        You can only select up to {MAX_SELECTED_SKILLS} skills. Remove one to add another.
+                                    </p>
+                                )}
+                                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                                    {availableSkills.map((skill) => {
+                                        const isSelected = selectedSkills.includes(skill);
+                                        const disabled = !isSelected && skillLimitReached;
+
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={skill}
+                                                onClick={() => handleToggleSkill(skill)}
+                                                disabled={disabled}
+                                                className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${isSelected
+                                                    ? "border-cyan-600 bg-cyan-600/15 text-cyan-700 dark:border-cyan-500 dark:bg-cyan-500/15 dark:text-cyan-200"
+                                                    : "border-gray-200 text-gray-600 hover:border-cyan-600/50 hover:text-cyan-700 dark:border-gray-600/60 dark:text-gray-300"
+                                                    } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+                                            >
+                                                {skill}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </section>
 
                             <div className="flex items-center gap-3 rounded-2xl border border-dsb-neutral3/30 bg-white/90 p-4 text-sm text-dsb-neutral2 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
@@ -1026,11 +1186,10 @@ const ProfileEdit: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => 
                             <button
                                 key={style.name}
                                 onClick={() => handleSelectDiceBearAvatar(style.name)}
-                                className={`rounded-2xl border-2 p-3 transition ${
-                                    selectedStyle === style.name
-                                        ? "border-dsb-accent bg-dsb-accent/10"
-                                        : "border-dsb-neutral3/30 hover:border-dsb-accent/60 dark:border-white/10"
-                                }`}
+                                className={`rounded-2xl border-2 p-3 transition ${selectedStyle === style.name
+                                    ? "border-dsb-accent bg-dsb-accent/10"
+                                    : "border-dsb-neutral3/30 hover:border-dsb-accent/60 dark:border-white/10"
+                                    }`}
                             >
                                 <div className="aspect-square overflow-hidden rounded-xl bg-white/80 p-4 dark:bg-white/5">
                                     {generatedAvatars[style.name]?.[0] ? (

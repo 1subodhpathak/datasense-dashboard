@@ -9,6 +9,8 @@ import {
   FaDiscord,
   FaLaptop // for Topmate
 } from "react-icons/fa";
+import { Slack } from 'lucide-react';
+
 
 const Community = () => {
   const communities = [
@@ -60,6 +62,13 @@ const Community = () => {
       url: "https://topmate.io/datasense",
       icon: <FaLaptop className="h-6 w-6" />,
       desc: "1:1 Mentorship Sessions"
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      url: "https://join.slack.com/t/datasenseai/shared_invite/zt-2f91qy3ik-9Ix7Np2jS63g9X8~8_jT4g",
+      icon: <Slack className="h-6 w-6" />,
+      desc: "Community chat"
     }
   ];
 
@@ -98,7 +107,7 @@ const Community = () => {
                       </span>
                     </div>
 
-                    <span className="relative mt-4 inline-flex items-center gap-2 self-start rounded-full border border-dsb-accent/40 bg-dsb-accent/10 px-4 py-2 text-sm font-semibold text-dsb-accent transition-all duration-300 group-hover:bg-dsb-accent group-hover:text-black dark:border-dsb-accent/30 dark:bg-dsb-accent/15">
+                    <span className="relative mt-4 inline-flex items-center gap-2 self-start rounded-lg border border-dsb-accent/40 bg-dsb-accent/10 px-4 py-2 text-sm font-semibold text-dsb-accent transition-all duration-300 group-hover:bg-dsb-accent group-hover:text-black dark:border-dsb-accent/30 dark:bg-dsb-accent/15">
                       Go to community
                       <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" />

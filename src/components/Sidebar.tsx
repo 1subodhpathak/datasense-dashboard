@@ -3,15 +3,30 @@ import { cn } from "@/lib/utils";
 import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 const Sidebar = () => {
     const location = useLocation();
     const currentPath = location.pathname;
     const [showBattlegroundDropdown, setShowBattlegroundDropdown] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
+    const { isSignedIn } = useUser();
+    const { openSignIn } = useClerk();
 
-    const handleBackToHome = () => {
-        window.location.href = "https://practice.datasenseai.com";
+    const handleProtectedNavigation = (event: React.MouseEvent<HTMLElement>, targetUrl: string) => {
+        if (!isSignedIn) {
+            event.preventDefault();
+            if (openSignIn) {
+                openSignIn({
+                    afterSignInUrl: targetUrl,
+                    afterSignUpUrl: targetUrl,
+                });
+            } else {
+                window.location.href = `/sign-in?redirect_url=${encodeURIComponent(targetUrl)}`;
+            }
+            return true;
+        }
+        return false;
     };
 
     const menuItems = [
@@ -60,6 +75,7 @@ const Sidebar = () => {
                                                 isCollapsed ? "p-2" : "p-2.5"
                                             )}
                                             title={item.label}
+                                            onClick={(e) => handleProtectedNavigation(e, item.dropdownItems?.[0]?.path || "/battleground")}
                                         >
                                             <item.icon className="w-5 h-5 flex-shrink-0" />
                                         </Link>
@@ -80,7 +96,7 @@ const Sidebar = () => {
                                                 ? "bg-white/20 text-white shadow-sm"
                                                 : "text-white/80 hover:bg-white/10 hover:text-white"
                                         )}
-                                    >
+                                        >
                                         <item.icon className="w-5 h-5 flex-shrink-0" />
                                         <span className="flex-1 text-[0.9rem] font-semibold tracking-wide">
                                             {item.label}
@@ -106,7 +122,12 @@ const Sidebar = () => {
                                                                 ? "bg-white/15 text-white font-medium"
                                                                 : "text-white/75 hover:bg-white/10 hover:text-white"
                                                         )}
-                                                        onClick={() => setShowBattlegroundDropdown(false)}
+                                                        onClick={(e) => {
+                                                            const blocked = handleProtectedNavigation(e, dropdownItem.path);
+                                                            if (!blocked) {
+                                                                setShowBattlegroundDropdown(false);
+                                                            }
+                                                        }}
                                                     >
                                                         <div className={cn(
                                                             "w-1.5 h-1.5 rounded-full",
@@ -137,6 +158,7 @@ const Sidebar = () => {
                                         : "gap-3 px-3 py-2.5"
                                 )}
                                 title={isCollapsed ? item.label : undefined}
+                                onClick={(e) => handleProtectedNavigation(e, item.path)}
                             >
                                 <item.icon className={cn(
                                     "flex-shrink-0 transition-transform duration-200 group-hover:scale-105",

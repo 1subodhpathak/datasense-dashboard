@@ -235,7 +235,7 @@ const Dashboard = () => {
           </div>
           <Link to="https://battleground.datasenseai.com/start" className="flex-shrink-0">
             <button
-              className="rounded-lg bg-cyan-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              className="rounded-lg bg-cyan-600 px-5 py-2 text-sm font-semibold text-white/95 transition hover:bg-cyan-700"
             >
               Game
             </button>
