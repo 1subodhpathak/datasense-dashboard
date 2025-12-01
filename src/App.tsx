@@ -16,7 +16,8 @@ import Badges from "./pages/Badges";
 import { ThemeProvider } from './lib/theme-context'
 import { SidebarProvider } from './lib/sidebar-context'
 import Profile from "./pages/Profile";
-import Portfolio from "./pages/Portfolio";
+import Portfolio from "./pages/PortfolioNew";
+
 import PublicPortfolio from "./pages/PublicPortfolio";
 import Challenge from "./pages/Challenge";
 import ProfileEdit from "./pages/ProfileEdit";
@@ -28,6 +29,7 @@ import { WebSocketProvider } from './util/WebsocketProvider'
 import { NotificationProvider } from "@/hooks/NotificationProvider";
 import axios from 'axios';
 import DashboardPractice from "./pages/DashboardPractice";
+import ProfilePage from "./pages/ProfilePage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -81,137 +83,145 @@ const App = () => {
                 {/* Wrap NotificationProvider here */}
                 <NotificationProvider>
                   <BrowserRouter>
-                  <Routes>
-                    {/* Public route - accessible without login */}
-                    <Route path="/p/:clerkId" element={<PublicPortfolio />} />
+                    <Routes>
+                      {/* Public route - accessible without login */}
+                      <Route path="/p/:clerkId" element={<PublicPortfolio />} />
 
-                    {/* Protected routes - require authentication */}
-                    
-                    {/* Main professional dashboard */}
-                    <Route 
-                      path="/dashboard" 
-                      element={
-                        <ProtectedRoute>
-                          <MainDashboard />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    
-                    {/* New routes */}
-                    <Route 
-                      path="/my-learnings" 
-                      element={
-                        <ProtectedRoute>
-                          <MyLearnings />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/resources" 
-                      element={
-                        <ProtectedRoute>
-                          <Resources />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/battleground" 
-                      element={
-                        <ProtectedRoute>
-                          <Battleground />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    
-                    {/* Existing routes */}
-                    <Route 
-                      path="/badges" 
-                      element={
-                        <ProtectedRoute>
-                          <Badges />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/challenge" 
-                      element={
-                        <ProtectedRoute>
-                          <Challenge />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/community" 
-                      element={
-                        <ProtectedRoute>
-                          <Community />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/leaderboard" 
-                      element={
-                        <ProtectedRoute>
-                          <Leaderboard />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/sql-journey" 
-                      element={
-                        <ProtectedRoute>
-                          <SqlJourney />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/profile" 
-                      element={
-                        <ProtectedRoute>
-                          <Profile />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/portfolio" 
-                      element={
-                        <ProtectedRoute>
-                          <Portfolio />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/profile-edit" 
-                      element={
-                        <ProtectedRoute>
-                          <ProfileEdit />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    
-                    {/* Keep practice-dashboard accessible for UnifiedDashboard */}
-                    <Route 
-                      path="/practice-dashboard" 
-                      element={
-                        <ProtectedRoute>
-                          <DashboardPractice />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    
-                    {/* Redirect root to new dashboard */}
-                    <Route 
-                      path="/" 
-                      element={
-                        <ProtectedRoute>
-                          <Navigate to="/dashboard" replace />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                      {/* Protected routes - require authentication */}
+
+                      {/* Main professional dashboard */}
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <MainDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* New routes */}
+                      <Route
+                        path="/my-learnings"
+                        element={
+                          <ProtectedRoute>
+                            <MyLearnings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/resources"
+                        element={
+                          <ProtectedRoute>
+                            <Resources />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile-page"
+                        element={
+                          <ProtectedRoute>
+                            <ProfilePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/battleground"
+                        element={
+                          <ProtectedRoute>
+                            <Battleground />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Existing routes */}
+                      <Route
+                        path="/badges"
+                        element={
+                          <ProtectedRoute>
+                            <Badges />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/challenge"
+                        element={
+                          <ProtectedRoute>
+                            <Challenge />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/community"
+                        element={
+                          <ProtectedRoute>
+                            <Community />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/leaderboard"
+                        element={
+                          <ProtectedRoute>
+                            <Leaderboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/sql-journey"
+                        element={
+                          <ProtectedRoute>
+                            <SqlJourney />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <ProtectedRoute>
+                            <Profile />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/portfolio"
+                        element={
+                          <ProtectedRoute>
+                            <Portfolio />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile-edit"
+                        element={
+                          <ProtectedRoute>
+                            <ProfileEdit />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Keep practice-dashboard accessible for UnifiedDashboard */}
+                      <Route
+                        path="/practice-dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <DashboardPractice />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Redirect root to new dashboard */}
+                      <Route
+                        path="/"
+                        element={
+                          <ProtectedRoute>
+                            <Navigate to="/dashboard" replace />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
                   </BrowserRouter>
                 </NotificationProvider>
               </WebSocketProvider>
