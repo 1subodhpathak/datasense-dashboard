@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useState, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ProfileHero from "@/components/profile/ProfileHero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useUser, useAuth } from "@clerk/clerk-react";
 
+// --- ADDED: Imports for Image Handling ---
+import ReactCrop, { type Crop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+
 type PortfolioExtras = {
   bio?: string;
   skills?: unknown[];
@@ -22,69 +26,25 @@ type PortfolioExtras = {
 
 const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
-const DEFAULT_BANNER = "/placeholder.svg?height=400&width=1200";
 const MAX_SELECTED_SKILLS = 6;
 
 const API_ENDPOINT = "https://server.datasenseai.com/battleground-profile";
-// const API_ENDPOINT = "http://localhost:4000/battleground-profile";
 
 const TECHNICAL_SKILLS_OPTIONS = [
-  "Python",
-  "Python Libraries",
-  "R",
-  "SQL",
-  "MySQL",
-  "PostgreSQL",
-  "Excel",
-  "Tableau",
-  "Power BI",
-  "Looker Studio",
-  "Visual Studio Code",
-  "Google Colab",
-  "Google Kubernetes",
-  "Git & GitHub",
-  "GitLab",
-  "Postman",
-  "MongoDB",
-  "Snowflake",
-  "Databricks",
-  "BigQuery",
-  "AWS",
-  "Azure",
-  "Google Cloud Platform",
-  "Docker",
-  "Apache Spark",
-  "Hadoop",
-  "Airflow",
-  "Figma",
-  "PyCharm",
-  "Node.js"
+  "Python", "Python Libraries", "R", "SQL", "MySQL", "PostgreSQL", "Excel", "Tableau", "Power BI",
+  "Looker Studio", "Visual Studio Code", "Google Colab", "Google Kubernetes", "Git & GitHub", "GitLab",
+  "Postman", "MongoDB", "Snowflake", "Databricks", "BigQuery", "AWS", "Azure", "Google Cloud Platform",
+  "Docker", "Apache Spark", "Hadoop", "Airflow", "Figma", "PyCharm", "Node.js"
 ] as const;
 
 const CORE_SKILLS_OPTIONS = [
-  "Problem Solving",
-  "Critical Thinking",
-  "Data Analysis",
-  "Strategic Planning",
-  "Project Management",
-  "Research",
-  "Decision Making",
-  "System Design",
-  "Business Intelligence",
-  "Optimization"
+  "Problem Solving", "Critical Thinking", "Data Analysis", "Strategic Planning", "Project Management",
+  "Research", "Decision Making", "System Design", "Business Intelligence", "Optimization"
 ] as const;
 
 const SOFT_SKILLS_OPTIONS = [
-  "Communication",
-  "Teamwork",
-  "Leadership",
-  "Adaptability",
-  "Time Management",
-  "Creativity",
-  "Emotional Intelligence",
-  "Collaboration",
-  "Mentoring",
-  "Presentation"
+  "Communication", "Teamwork", "Leadership", "Adaptability", "Time Management", "Creativity",
+  "Emotional Intelligence", "Collaboration", "Mentoring", "Presentation"
 ] as const;
 
 const profileTasks = [
@@ -111,7 +71,6 @@ const projectIdeas = [
   { title: "Python Forecasting Toolkit", description: "Notebook that predicts monthly sales with ARIMA and Prophet." },
 ];
 
-// Mock avatar styles for the modal
 const avatarStyles = [
   { name: "avataaars", preview: "https://api.dicebear.com/7.x/avataaars/svg?seed=style1" },
   { name: "bottts", preview: "https://api.dicebear.com/7.x/bottts/svg?seed=style2" },
@@ -137,21 +96,35 @@ const Portfolio = () => {
   const [editBio, setEditBio] = useState("");
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
-
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editProfession, setEditProfession] = useState("");
   const [editCompany, setEditCompany] = useState("");
-  // Work status: 'open_to_work' | 'working'
   const [editWorkStatus, setEditWorkStatus] = useState<"open_to_work" | "working">("open_to_work");
 
-  // New Skills State
+  // Skills State
   const [editCoreSkills, setEditCoreSkills] = useState<string[]>([]);
   const [editTechnicalSkills, setEditTechnicalSkills] = useState<string[]>([]);
   const [editSoftSkills, setEditSoftSkills] = useState<string[]>([]);
   const [newSkillCategory, setNewSkillCategory] = useState<"core" | "technical" | "soft">("core");
 
-  // Avatar modal state
+  // --- ADDED: Image Handling State ---
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [deleteAvatar, setDeleteAvatar] = useState(false);
+  const [deleteBanner, setDeleteBanner] = useState(false);
+
+  // Crop State
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 90, height: 90, x: 5, y: 5 });
+  const [completedCrop, setCompletedCrop] = useState<any>(null);
+  const [isCroppingAvatar, setIsCroppingAvatar] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Avatar Modal State
   const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   // Computed values
@@ -163,75 +136,36 @@ const Portfolio = () => {
 
   const biography = useMemo(() => (extendedProfile?.bio ?? "").trim(), [extendedProfile?.bio]);
 
-
-
-  const normalizedCoreSkills = useMemo(() => {
-    return Array.isArray(extendedProfile?.coreSkills) ? extendedProfile.coreSkills : [];
-  }, [extendedProfile?.coreSkills]);
-
-  const normalizedTechnicalSkills = useMemo(() => {
-    return Array.isArray(extendedProfile?.technicalSkills) ? extendedProfile.technicalSkills : [];
-  }, [extendedProfile?.technicalSkills]);
-
-  const normalizedSoftSkills = useMemo(() => {
-    return Array.isArray(extendedProfile?.softSkills) ? extendedProfile.softSkills : [];
-  }, [extendedProfile?.softSkills]);
+  const normalizedCoreSkills = useMemo(() => Array.isArray(extendedProfile?.coreSkills) ? extendedProfile.coreSkills : [], [extendedProfile?.coreSkills]);
+  const normalizedTechnicalSkills = useMemo(() => Array.isArray(extendedProfile?.technicalSkills) ? extendedProfile.technicalSkills : [], [extendedProfile?.technicalSkills]);
+  const normalizedSoftSkills = useMemo(() => Array.isArray(extendedProfile?.softSkills) ? extendedProfile.softSkills : [], [extendedProfile?.softSkills]);
 
   const normalizedCredentials = useMemo(() => {
     if (!Array.isArray(extendedProfile?.credentials)) return [] as string[];
     return (extendedProfile?.credentials as unknown[])
       .map((credential) => {
-        if (typeof credential === "string") {
-          const trimmed = credential.trim();
-          return trimmed.length > 0 ? trimmed : null;
-        }
+        if (typeof credential === "string") return credential.trim() || null;
         if (credential && typeof credential === "object") {
           const record = credential as Record<string, unknown>;
-          const candidate =
-            (typeof record.title === "string" && record.title) ||
-            (typeof record.name === "string" && record.name) ||
-            (typeof (record as { badgeName?: unknown }).badgeName === "string" && (record as { badgeName?: string }).badgeName) ||
-            (typeof (record as { credential?: unknown }).credential === "string" && (record as { credential?: string }).credential) ||
-            (typeof (record as { credentialName?: unknown }).credentialName === "string" && (record as { credentialName?: string }).credentialName);
-          if (candidate) {
-            const trimmedCandidate = candidate.trim();
-            return trimmedCandidate.length > 0 ? trimmedCandidate : null;
-          }
+          const candidate = (typeof record.title === "string" && record.title) || (typeof record.name === "string" && record.name) || null;
+          return candidate?.trim() || null;
         }
         return null;
       })
-      .filter((credential): credential is string => Boolean(credential));
+      .filter((c): c is string => Boolean(c));
   }, [extendedProfile?.credentials]);
 
   const profileChecklist = useMemo<ChecklistItem[]>(() => {
     const biographyPreview = biography.length > 120 ? `${biography.slice(0, 117)}…` : biography;
     return profileTasks.map((task) => {
       const base = { id: task.id, title: task.title, description: task.description, action: task.action };
-      if (task.id === "photo") {
-        const completed = hasProfilePhoto;
-        return { ...base, completed, summary: completed ? "Profile photo uploaded" : "No profile photo yet" };
-      }
-      if (task.id === "bio") {
-        const completed = biography.length > 0;
-        return { ...base, completed, summary: completed ? biographyPreview : "Biography not added" };
-      }
+      if (task.id === "photo") return { ...base, completed: hasProfilePhoto, summary: hasProfilePhoto ? "Profile photo uploaded" : "No profile photo yet" };
+      if (task.id === "bio") return { ...base, completed: biography.length > 0, summary: biography.length > 0 ? biographyPreview : "Biography not added" };
       if (task.id === "skills") {
         const totalSkills = normalizedCoreSkills.length + normalizedTechnicalSkills.length + normalizedSoftSkills.length;
-        const completed = totalSkills > 0;
-        return {
-          ...base, completed,
-          summary: completed ? `${totalSkills} skill${totalSkills === 1 ? "" : "s"} added` : "No skills added yet",
-          highlights: completed ? [...normalizedCoreSkills, ...normalizedTechnicalSkills, ...normalizedSoftSkills] : undefined
-        };
+        return { ...base, completed: totalSkills > 0, summary: totalSkills > 0 ? `${totalSkills} skills added` : "No skills added yet", highlights: [...normalizedCoreSkills, ...normalizedTechnicalSkills, ...normalizedSoftSkills] };
       }
-      if (task.id === "credential") {
-        const completed = normalizedCredentials.length > 0;
-        return {
-          ...base, completed,
-          summary: completed ? `${normalizedCredentials.length} credential${normalizedCredentials.length === 1 ? "" : "s"} shared` : "No credentials shared yet",
-          highlights: completed ? normalizedCredentials : undefined
-        };
-      }
+      if (task.id === "credential") return { ...base, completed: normalizedCredentials.length > 0, summary: normalizedCredentials.length > 0 ? `${normalizedCredentials.length} credentials shared` : "No credentials shared yet", highlights: normalizedCredentials };
       return { ...base, completed: false, summary: "" };
     });
   }, [biography, hasProfilePhoto, normalizedCredentials, normalizedCoreSkills, normalizedTechnicalSkills, normalizedSoftSkills]);
@@ -243,10 +177,179 @@ const Portfolio = () => {
   const portfolioLevel = completionPercentage >= 75 ? "Showcase Ready" : completionPercentage >= 40 ? "Developing" : "Beginner";
   const summaryLabel = `${completedTasks} / ${totalTasks} task${totalTasks === 1 ? "" : "s"}`;
 
-  // Handle edit mode toggle
+  // --- ADDED: Utility Functions ---
+  const generateRandomSeed = () => Math.random().toString(36).substring(7);
+
+  const convertSvgToFile = async (svgUrl: string, filename: string = 'avatar.svg'): Promise<File> => {
+    try {
+      const response = await fetch(svgUrl);
+      const svgText = await response.text();
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      return new File([blob], filename, { type: 'image/svg+xml' });
+    } catch (error) {
+      console.error('Error converting SVG to file:', error);
+      throw error;
+    }
+  };
+
+  // --- ADDED: Image Handlers ---
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.match("image.*")) { setError("Please select an image file"); return; }
+      if (file.size > 2 * 1024 * 1024) { setError("Image size should be less than 2MB"); return; }
+
+      const previewUrl = URL.createObjectURL(file);
+      setCropImage(previewUrl);
+      setAvatarFile(file); // Store specifically for cropping source
+      setDeleteAvatar(false);
+      setIsCroppingAvatar(true);
+      setShowCropModal(true);
+
+      // Reset input value so same file can be selected again
+      e.target.value = '';
+    }
+  };
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.match("image.*")) { setError("Please select an image file"); return; }
+      if (file.size > 5 * 1024 * 1024) { setError("Image size should be less than 5MB"); return; }
+
+      const previewUrl = URL.createObjectURL(file);
+      setCropImage(previewUrl);
+      setBannerFile(file); // Store specifically for cropping source
+      setDeleteBanner(false);
+      setIsCroppingAvatar(false);
+      setShowCropModal(true);
+
+      // Reset input value
+      e.target.value = '';
+    }
+  };
+
+  const handleRandomizeAvatar = async () => {
+    try {
+      const seed = generateRandomSeed();
+      const style = "avataaars"; // default style
+      const mockAvatar = `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
+
+      const file = await convertSvgToFile(mockAvatar, `${style}-${seed}.svg`);
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+      setDeleteAvatar(false);
+    } catch (err) {
+      setError("Failed to generate avatar");
+    }
+  };
+
+  const handleSelectAvatarStyle = async (styleName: string) => {
+    try {
+      const seed = generateRandomSeed();
+      const mockAvatar = `https://api.dicebear.com/7.x/${styleName}/svg?seed=${seed}`;
+      const file = await convertSvgToFile(mockAvatar, `${styleName}-${seed}.svg`);
+
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+      setDeleteAvatar(false);
+      setShowAvatarModal(false);
+    } catch (err) {
+      setError("Failed to select avatar style");
+    }
+  };
+
+  // --- ADDED: Cropping Logic ---
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    imgRef.current = e.currentTarget;
+    if (isCroppingAvatar) {
+      setCrop({ unit: "%", width: 90, height: 90, x: 5, y: 5 });
+    } else {
+      setCrop({ unit: "%", width: 90, height: 50, x: 5, y: 25 });
+    }
+  };
+
+  const onCropComplete = (crop: any) => {
+    setCompletedCrop(crop);
+  };
+
+  // Helper to create the actual cropped file/blob
+  const getCroppedImg = async (image: HTMLImageElement, crop: any, fileName: string): Promise<File | null> => {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return null;
+
+    ctx.drawImage(
+      image,
+      crop.x * scaleX,
+      crop.y * scaleY,
+      crop.width * scaleX,
+      crop.height * scaleY,
+      0,
+      0,
+      crop.width,
+      crop.height
+    );
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Canvas is empty'));
+          return;
+        }
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
+        resolve(file);
+      }, 'image/jpeg');
+    });
+  };
+
+  const handleApplyCrop = async () => {
+    if (imgRef.current && completedCrop?.width && completedCrop?.height) {
+      // Create a canvas/file from the crop
+      // Note: For simplicity in preview, we use the blob URL. 
+      // Real implementation needs to generate the File object to upload.
+
+      try {
+        const fileName = isCroppingAvatar ? 'avatar-cropped.jpg' : 'banner-cropped.jpg';
+        const croppedFile = await getCroppedImg(imgRef.current, completedCrop, fileName);
+
+        if (croppedFile) {
+          const croppedUrl = URL.createObjectURL(croppedFile);
+          if (isCroppingAvatar) {
+            setAvatarFile(croppedFile);
+            setAvatarPreview(croppedUrl);
+          } else {
+            setBannerFile(croppedFile);
+            setBannerPreview(croppedUrl);
+          }
+        }
+      } catch (e) {
+        console.error("Crop error", e);
+      }
+      setShowCropModal(false);
+    } else {
+      setShowCropModal(false);
+    }
+  };
+
+  const handleCancelCrop = () => {
+    setShowCropModal(false);
+    setCropImage(null);
+    // Don't clear previous files if we just cancelled a new selection
+  };
+
+  // --- Handlers ---
+
   const handleToggleEdit = () => {
     if (!editMode) {
-      // Entering edit mode
+      // Enter Edit Mode: Load values
       setEditBio(biography);
       setEditFirstName(extendedProfile?.firstName || "");
       setEditLastName(extendedProfile?.lastName || "");
@@ -258,9 +361,17 @@ const Portfolio = () => {
       setEditProfession(extendedProfile?.profession || "");
       setEditCompany(extendedProfile?.company || "");
       setEditWorkStatus(extendedProfile?.workStatus === "working" ? "working" : "open_to_work");
+
+      // Reset image states
+      setAvatarFile(null);
+      setBannerFile(null);
+      setAvatarPreview(null);
+      setBannerPreview(null);
+      setDeleteAvatar(false);
+      setDeleteBanner(false);
+
       setEditMode(true);
     } else {
-      // Save changes
       handleSaveProfile();
     }
   };
@@ -271,10 +382,7 @@ const Portfolio = () => {
     try {
       const token = await getToken();
       const clerkId = user?.id;
-
-      if (!clerkId) {
-        throw new Error("User ID not found");
-      }
+      if (!clerkId) throw new Error("User ID not found");
 
       const formData = new FormData();
       formData.append('firstname', editFirstName);
@@ -286,25 +394,41 @@ const Portfolio = () => {
       formData.append('showPhone', extendedProfile?.showPhone ? "true" : "false");
       formData.append('bio', editBio);
 
-      formData.append('skills', JSON.stringify(editTechnicalSkills));
+      // Skills
       formData.append('coreSkills', JSON.stringify(editCoreSkills));
       formData.append('technicalSkills', JSON.stringify(editTechnicalSkills));
       formData.append('softSkills', JSON.stringify(editSoftSkills));
+      // Legacy skills field support if needed by backend
+      formData.append('skills', JSON.stringify(editTechnicalSkills));
       formData.append('workStatus', editWorkStatus);
+
+      // --- ADDED: Image Logic for FormData ---
+      if (deleteAvatar) {
+        formData.append('deleteAvatar', 'true');
+      } else if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      if (deleteBanner) {
+        formData.append('deleteBanner', 'true');
+      } else if (bannerFile) {
+        formData.append('banner', bannerFile);
+      }
 
       const response = await fetch(`${API_ENDPOINT}/${clerkId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          // Content-Type is set automatically with FormData
         },
         body: formData
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-      // Update context locally to reflect changes immediately
+      const savedData = await response.json();
+
+      // Update context locally
       if (setContextProfile && profile) {
         setContextProfile({
           ...profile,
@@ -319,7 +443,10 @@ const Portfolio = () => {
           technicalSkills: editTechnicalSkills,
           softSkills: editSoftSkills,
           skills: editTechnicalSkills,
-          workStatus: editWorkStatus
+          workStatus: editWorkStatus,
+          // Update images from response if available, or fallbacks
+          avatar: savedData.avatar || profile.avatar,
+          banner: savedData.banner || profile.banner
         });
       }
 
@@ -338,31 +465,18 @@ const Portfolio = () => {
 
   const handleCancelEdit = () => {
     setEditMode(false);
-    setEditBio("");
-    setEditFirstName("");
-    setEditLastName("");
-
-    setEditCoreSkills([]);
-    setEditTechnicalSkills([]);
-    setEditSoftSkills([]);
-    setEditEmail("");
-    setEditPhone("");
-    setEditProfession("");
-    setEditCompany("");
-    setEditWorkStatus("open_to_work");
     setError(null);
+    setAvatarPreview(null);
+    setBannerPreview(null);
+    setAvatarFile(null);
+    setBannerFile(null);
   };
 
   const handleToggleNewSkill = (skill: string, category: "core" | "technical" | "soft") => {
     const setFn = category === "core" ? setEditCoreSkills : category === "technical" ? setEditTechnicalSkills : setEditSoftSkills;
-
     setFn(prev => {
-      if (prev.includes(skill)) {
-        return prev.filter(s => s !== skill);
-      }
-      if (prev.length >= MAX_SELECTED_SKILLS) {
-        return prev;
-      }
+      if (prev.includes(skill)) return prev.filter(s => s !== skill);
+      if (prev.length >= MAX_SELECTED_SKILLS) return prev;
       return [...prev, skill];
     });
   };
@@ -372,7 +486,6 @@ const Portfolio = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 pb-24">
-        {/* Success/Error Messages */}
         {error && (
           <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-600 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200">
             <AlertCircle className="mt-0.5 h-5 w-5" />
@@ -389,7 +502,6 @@ const Portfolio = () => {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
           <div className="w-full lg:w-[40%] lg:flex-shrink-0">
             <div className="flex flex-col gap-5">
-              {/* Profile Hero - Editable in edit mode */}
               {editMode ? (
                 <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark p-6">
                   <div className="space-y-4">
@@ -399,15 +511,27 @@ const Portfolio = () => {
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cover Photo</label>
                       <div className="relative h-32 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600/40">
-                        {extendedProfile?.banner && extendedProfile.banner.trim().length > 0 ? (
-                          <img src={extendedProfile.banner} alt="Cover" className="h-full w-full object-cover" />
+                        {/* Display Preview if available, else current banner, else gradient */}
+                        {(bannerPreview || (extendedProfile?.banner && extendedProfile.banner.trim().length > 0)) ? (
+                          <img
+                            src={bannerPreview || extendedProfile?.banner}
+                            alt="Cover"
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <div className="h-full w-full bg-gradient-to-r from-cyan-500 to-teal-600" />
                         )}
-                        <Button size="sm" className="absolute bottom-2 right-2 bg-white/90 text-gray-900 hover:bg-white">
+
+                        <label className="absolute bottom-2 right-2 cursor-pointer inline-flex items-center justify-center rounded-md bg-white/90 px-3 py-2 text-sm font-medium text-gray-900 shadow-sm hover:bg-white">
                           <Camera className="h-4 w-4 mr-2" />
                           Upload
-                        </Button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleBannerChange}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
                     </div>
 
@@ -416,11 +540,12 @@ const Portfolio = () => {
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Profile Photo</label>
                       <div className="flex items-center gap-4">
                         <Avatar className="size-20 rounded-full border-4 border-white dark:border-[#32363C]">
-                          <AvatarImage src={extendedProfile?.avatar || DEFAULT_AVATAR} />
+                          <AvatarImage src={avatarPreview || extendedProfile?.avatar || DEFAULT_AVATAR} />
                           <AvatarFallback>U</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-wrap gap-2">
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline"
                             className="text-xs"
@@ -429,134 +554,100 @@ const Portfolio = () => {
                             <Grid className="h-3 w-3 mr-1" />
                             Avatar Styles
                           </Button>
-                          <Button size="sm" variant="outline" className="text-xs">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            onClick={handleRandomizeAvatar}
+                          >
                             <Shuffle className="h-3 w-3 mr-1" />
                             Randomize
                           </Button>
-                          <Button size="sm" variant="outline" className="text-xs">
+
+                          <label className="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
                             <Upload className="h-3 w-3 mr-1" />
                             Upload
-                          </Button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarChange}
+                              className="hidden"
+                            />
+                          </label>
                         </div>
                       </div>
                     </div>
 
-                    {/* First Name and Last Name */}
+                    {/* Form Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
-                        <Input
-                          value={editFirstName}
-                          onChange={(e) => setEditFirstName(e.target.value)}
-                          className={inputClass}
-                          placeholder="First Name"
-                        />
+                        <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} className={inputClass} placeholder="First Name" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
-                        <Input
-                          value={editLastName}
-                          onChange={(e) => setEditLastName(e.target.value)}
-                          className={inputClass}
-                          placeholder="Last Name"
-                        />
+                        <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} className={inputClass} placeholder="Last Name" />
                       </div>
                     </div>
 
-                    {/* Email and Phone */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
-                        <Input
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          className={inputClass}
-                          placeholder="Email address"
-                          type="email"
-                        />
+                        <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className={inputClass} placeholder="Email address" type="email" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone number</label>
-                        <Input
-                          value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
-                          className={inputClass}
-                          placeholder="Phone number"
-                          type="tel"
-                        />
+                        <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className={inputClass} placeholder="Phone number" type="tel" />
                       </div>
                     </div>
-                    {/* Show Phone Toggle */}
+
                     <div className="flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-600/40 bg-white dark:bg-[#32363C] p-4 text-sm text-gray-600 dark:text-gray-300 mt-4">
                       <input
                         type="checkbox"
                         checked={extendedProfile?.showPhone ?? false}
                         onChange={(e) => {
                           if (setContextProfile && extendedProfile) {
-                            setContextProfile({
-                              ...extendedProfile,
-                              showPhone: e.target.checked,
-                            });
+                            setContextProfile({ ...extendedProfile, showPhone: e.target.checked });
                           }
                         }}
                         id="showPhone"
                         className="size-4 rounded border border-gray-300 text-cyan-600 focus:ring-cyan-600 dark:border-gray-600 dark:bg-transparent"
                       />
-                      <label htmlFor="showPhone" className="cursor-pointer">
-                        Make my phone number visible to other users.
-                      </label>
+                      <label htmlFor="showPhone" className="cursor-pointer">Make my phone number visible to other users.</label>
                     </div>
 
-                    {/* Profession and Company */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Profession</label>
-                        <Input
-                          value={editProfession}
-                          onChange={(e) => setEditProfession(e.target.value)}
-                          className={inputClass}
-                          placeholder="e.g. Product Analyst"
-                        />
+                        <Input value={editProfession} onChange={(e) => setEditProfession(e.target.value)} className={inputClass} placeholder="e.g. Product Analyst" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Company / Institution</label>
-                        <Input
-                          value={editCompany}
-                          onChange={(e) => setEditCompany(e.target.value)}
-                          className={inputClass}
-                          placeholder="e.g. Datasense AI"
-                        />
+                        <Input value={editCompany} onChange={(e) => setEditCompany(e.target.value)} className={inputClass} placeholder="e.g. Datasense AI" />
                       </div>
                     </div>
 
-                    {/* Work status */}
                     <div className="mt-3">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Work status</label>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setEditWorkStatus("open_to_work")}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium ${editWorkStatus === "open_to_work"
-                            ? "bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-600/10 dark:text-emerald-300"
-                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`
-                          }
+                          className={`px-3 py-2 rounded-lg text-sm font-medium ${editWorkStatus === "open_to_work" ? "bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-600/10 dark:text-emerald-300" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
                         >
                           Open to work
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditWorkStatus("working")}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium ${editWorkStatus === "working"
-                            ? "bg-cyan-50 border border-cyan-200 text-cyan-800 dark:bg-cyan-600/10 dark:text-cyan-300"
-                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`
-                          }
+                          className={`px-3 py-2 rounded-lg text-sm font-medium ${editWorkStatus === "working" ? "bg-cyan-50 border border-cyan-200 text-cyan-800 dark:bg-cyan-600/10 dark:text-cyan-300" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
                         >
                           Working
                         </button>
                       </div>
                     </div>
 
-                    {/* Bio */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
                       <textarea
@@ -566,15 +657,13 @@ const Portfolio = () => {
                         placeholder="Share a short summary of your strengths, interests, and goals."
                       />
                     </div>
-
-
                   </div>
                 </Card>
               ) : (
-                <>
-                  {/* Use ProfileHero component when not editing */}
+                <div className="flex flex-col gap-5">
                   <ProfileHero />
-
+                  {/* ... Existing Read-only cards ... */}
+                  {/* Credentials Card */}
                   <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -605,6 +694,7 @@ const Portfolio = () => {
                     </CardContent>
                   </Card>
 
+                  {/* Portfolio Summary Card */}
                   <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -643,12 +733,13 @@ const Portfolio = () => {
                       </Link>
                     </CardContent>
                   </Card>
-                </>
+                </div>
               )}
             </div>
           </div>
 
           <section className="w-full lg:w-[60%] lg:flex-shrink-0 space-y-5">
+            {/* ... Right Column Cards (Portfolio Strength, Skills, Projects) ... */}
             <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
               <CardHeader className="pb-0">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -830,9 +921,6 @@ const Portfolio = () => {
                         );
                       })}
                     </div>
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      Select a category above, then click skills to add/remove. Max {MAX_SELECTED_SKILLS} per category.
-                    </p>
                   </div>
                 )}
               </CardContent>
@@ -880,6 +968,7 @@ const Portfolio = () => {
         </div>
 
         <section className="grid gap-5 lg:grid-cols-3 lg:items-start">
+          {/* ... Bottom Community/Inspiration Cards ... */}
           <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -927,13 +1016,12 @@ const Portfolio = () => {
             <>
               <Button
                 onClick={handleCancelEdit}
-                // variant="outline"
                 className="rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white/95 dark:bg-[#32363C] px-6 py-3 text-base font-semibold text-black shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </Button>
               <Button
-                onClick={handleToggleEdit}
+                onClick={handleSaveProfile}
                 disabled={saving}
                 className="rounded-lg bg-cyan-600 dark:bg-cyan-500 px-6 py-3 text-base font-semibold text-white/95 shadow-lg hover:bg-cyan-700 dark:hover:bg-cyan-600 disabled:opacity-50"
               >
@@ -970,10 +1058,7 @@ const Portfolio = () => {
               {avatarStyles.map((style) => (
                 <button
                   key={style.name}
-                  onClick={() => {
-                    // Handle avatar style selection
-                    setShowAvatarModal(false);
-                  }}
+                  onClick={() => handleSelectAvatarStyle(style.name)}
                   className="rounded-2xl border-2 border-gray-300 dark:border-gray-600 p-3 transition hover:border-cyan-600 dark:hover:border-cyan-500"
                 >
                   <div className="aspect-square overflow-hidden rounded-xl bg-white/80 p-4 dark:bg-white/5">
@@ -986,7 +1071,10 @@ const Portfolio = () => {
               ))}
             </div>
             <div className="mt-6 flex flex-col gap-2">
-              <Button className="bg-cyan-600 dark:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600">
+              <Button
+                onClick={handleRandomizeAvatar}
+                className="bg-cyan-600 dark:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600"
+              >
                 Regenerate avatar
               </Button>
               <Button
@@ -995,6 +1083,51 @@ const Portfolio = () => {
                 className="border-gray-300 dark:border-gray-600 bg-white px-4 py-2 text-sm font-semibold text-gray-900 dark:bg-white/10 dark:text-white"
               >
                 Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* --- ADDED: Crop Modal --- */}
+        <Dialog open={showCropModal && Boolean(cropImage)} onOpenChange={(open) => (!open ? handleCancelCrop() : setShowCropModal(true))}>
+          <DialogContent className="max-w-2xl border border-gray-300 dark:border-gray-600 bg-white/95 p-6 shadow-2xl dark:bg-[#08090A]">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Crop {isCroppingAvatar ? "avatar" : "cover"}
+            </h3>
+            {cropImage && (
+              <div className="mt-6">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  onComplete={onCropComplete}
+                  aspect={isCroppingAvatar ? 1 : 16 / 9}
+                  className="max-h-96"
+                >
+                  <img
+                    ref={imgRef}
+                    src={cropImage}
+                    onLoad={onImageLoad}
+                    alt="Crop preview"
+                    className="max-h-96 w-full object-contain"
+                  />
+                </ReactCrop>
+              </div>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelCrop}
+                className="rounded-lg border border-cyan-600 dark:border-cyan-500 bg-transparent px-5 text-sm font-semibold text-cyan-600 dark:text-cyan-500 hover:bg-cyan-600/10 dark:hover:bg-cyan-500/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleApplyCrop}
+                className="bg-cyan-600 dark:bg-cyan-500 px-6 py-2 text-sm font-semibold text-white hover:bg-cyan-700 dark:hover:bg-cyan-600"
+              >
+                Apply crop
               </Button>
             </div>
           </DialogContent>
