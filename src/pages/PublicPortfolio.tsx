@@ -23,6 +23,10 @@ type PortfolioExtras = {
   skills?: string[];
   credentials?: string[];
   projects?: string[];
+  coreSkills?: string[];
+  technicalSkills?: string[];
+  softSkills?: string[];
+  workStatus?: "open_to_work" | "working";
 };
 
 const profileTasks = [
@@ -58,8 +62,8 @@ const projectIdeas = [
   { title: "Python Forecasting Toolkit", description: "Notebook that predicts monthly sales with ARIMA and Prophet." },
 ];
 
-const API_BASE_URL = "https://server.datasenseai.com";
-// const API_BASE_URL = "http://localhost:4000";
+// const API_BASE_URL = "https://server.datasenseai.com";
+const API_BASE_URL = "http://localhost:4000";
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 
@@ -89,7 +93,7 @@ const PublicPortfolio = () => {
           banner: data.banner || "",
           firstName: data.firstname || "",
           lastName: data.lastname || "",
-          email: "",
+          email: data.email || "",
           phone: data.phone || "",
           profession: data.profession || "",
           company: data.company || "",
@@ -98,7 +102,11 @@ const PublicPortfolio = () => {
           skills: Array.isArray(data.skills) ? data.skills : [],
           credentials: Array.isArray(data.credentials) ? data.credentials : [],
           projects: Array.isArray(data.projects) ? data.projects : [],
+          coreSkills: Array.isArray(data.coreSkills) ? data.coreSkills : [],
+          technicalSkills: Array.isArray(data.technicalSkills) ? data.technicalSkills : [],
+          softSkills: Array.isArray(data.softSkills) ? data.softSkills : [],
           clerkId: data.clerkId || clerkId,
+          workStatus: data.workStatus === "working" ? "working" : "open_to_work",
         };
         setProfile(convertedProfile);
       } catch (err) {
@@ -149,6 +157,21 @@ const PublicPortfolio = () => {
       })
       .filter((credential): credential is string => Boolean(credential));
   }, [profile?.credentials]);
+
+  const normalizedCoreSkills = useMemo(() => {
+    if (!Array.isArray(profile?.coreSkills)) return [];
+    return profile.coreSkills.filter((skill) => typeof skill === "string" && skill.trim().length > 0);
+  }, [profile?.coreSkills]);
+
+  const normalizedTechnicalSkills = useMemo(() => {
+    if (!Array.isArray(profile?.technicalSkills)) return [];
+    return profile.technicalSkills.filter((skill) => typeof skill === "string" && skill.trim().length > 0);
+  }, [profile?.technicalSkills]);
+
+  const normalizedSoftSkills = useMemo(() => {
+    if (!Array.isArray(profile?.softSkills)) return [];
+    return profile.softSkills.filter((skill) => typeof skill === "string" && skill.trim().length > 0);
+  }, [profile?.softSkills]);
 
   const profileChecklist = useMemo<ChecklistItem[]>(() => {
     const biographyPreview = biography.length > 120 ? `${biography.slice(0, 117)}…` : biography;
@@ -230,6 +253,7 @@ const PublicPortfolio = () => {
                 readOnly
                 shareUrlOverride={typeof window !== "undefined" ? window.location.href : undefined}
               />
+              {/* <ProfileHero/> */}
               {error ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
                   {error}
@@ -257,6 +281,64 @@ const PublicPortfolio = () => {
                           No credentials shared yet.
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                  {/* Skills Dashboard Card */}
+                  <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
+                    <CardHeader>
+                      <CardTitle className="text-2xl font-semibold text-gray-900 dark:text-white">Skills Dashboard</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid gap-6 md:grid-cols-3">
+                        {/* Core Skills */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Core Skills</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {normalizedCoreSkills.length > 0 ? normalizedCoreSkills.map((skill, index) => (
+                              <span
+                                key={`${skill}-${index}`}
+                                className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              >
+                                {skill}
+                              </span>
+                            )) : (
+                              <span className="text-xs text-gray-500 italic">No skills added</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Technical Skills */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Technical Skills</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {normalizedTechnicalSkills.length > 0 ? normalizedTechnicalSkills.map((skill, index) => (
+                              <span
+                                key={`${skill}-${index}`}
+                                className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
+                              >
+                                {skill}
+                              </span>
+                            )) : (
+                              <span className="text-xs text-gray-500 italic">No skills added</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Soft Skills */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Soft Skills</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {normalizedSoftSkills.length > 0 ? normalizedSoftSkills.map((skill, index) => (
+                              <span
+                                key={`${skill}-${index}`}
+                                className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-400"
+                              >
+                                {skill}
+                              </span>
+                            )) : (
+                              <span className="text-xs text-gray-500 italic">No skills added</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                   <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
@@ -424,4 +506,3 @@ const PublicPortfolio = () => {
 };
 
 export default PublicPortfolio;
-

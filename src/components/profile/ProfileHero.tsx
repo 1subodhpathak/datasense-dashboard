@@ -99,7 +99,7 @@ const ProfileHero = ({
         <div className="h-32 w-full bg-gray-200/60 animate-pulse" />
         <div className="px-6 pb-6">
           <div className="-mt-12 mb-4 flex items-end justify-between">
-             <div className="size-24 rounded-full bg-gray-200/70 animate-pulse border-4 border-white dark:border-[#32363C]" />
+            <div className="size-24 rounded-full bg-gray-200/70 animate-pulse border-4 border-white dark:border-[#32363C]" />
           </div>
           <div className="space-y-3">
             <div className="h-6 w-48 rounded-full bg-gray-200/80 animate-pulse" />
@@ -113,7 +113,7 @@ const ProfileHero = ({
 
   return (
     <section className="group relative w-full overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600/50 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
-      
+
       {/* 1. Cover Photo Area */}
       <div className="h-36 w-full bg-gray-100 dark:bg-[#2A2F36]">
         {bannerSrc ? (
@@ -125,7 +125,7 @@ const ProfileHero = ({
 
       {/* 2. Main Content Area */}
       <div className="px-6 pb-6">
-        
+
         {/* Top Row: Avatar (Left) and Buttons (Right) */}
         <div className="flex items-end justify-between -mt-12 mb-5">
           {/* Avatar - Overlapping the banner */}
@@ -175,7 +175,7 @@ const ProfileHero = ({
               )}
             </div>
 
-            {!readOnly && (
+            {/* {!readOnly && (
               <Button
                 size="sm"
                 onClick={() => setIsEditOpen(true)}
@@ -183,7 +183,7 @@ const ProfileHero = ({
               >
                 <Edit2 className="h-3.5 w-3.5" />
               </Button>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -199,22 +199,6 @@ const ProfileHero = ({
             </p>
           </div>
 
-          {/* Skills - Horizontal Scrollable or Wrap */}
-          {activeProfile?.skills && activeProfile.skills.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {activeProfile.skills.slice(0, 8).map((skill) => (
-                <span
-                  key={skill}
-                  className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-600/50 dark:bg-[#2A2F36] dark:text-gray-300"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* <div className="h-px w-full bg-gray-100 dark:bg-gray-700" /> */}
-
           {/* Meta Details (Occupation, Company, Location) */}
           <div className="flex flex-wrap items-center gap-y-2 gap-x-5 pt-1 text-sm text-gray-600 dark:text-gray-400">
             {activeProfile?.profession && (
@@ -227,6 +211,14 @@ const ProfileHero = ({
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-cyan-600 dark:text-cyan-500" />
                 <span className="font-medium">{activeProfile.company}</span>
+              </div>
+            )}
+            {activeProfile?.workStatus && (
+              <div className="flex items-center gap-2">
+                <BriefcaseBusiness className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  {activeProfile.workStatus === 'working' ? 'Working' : 'Open to work'}
+                </span>
               </div>
             )}
             {activeProfile?.email && (
