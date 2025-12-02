@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser, SignInButton, UserButton, useClerk } from "@clerk/clerk-react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, User } from "lucide-react";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,43 +76,35 @@ const Navbar = () => {
             />
             <Link
               to="/dashboard"
-              className={`relative text-white text-lg ${
-                isDashboardPage ? "font-bold" : "font-base"
-              } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${
-                isDashboardPage ? "after:w-full" : "hover:after:w-full"
-              }`}
+              className={`relative text-white text-lg ${isDashboardPage ? "font-bold" : "font-base"
+                } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${isDashboardPage ? "after:w-full" : "hover:after:w-full"
+                }`}
               onClick={(e) => handleProtectedNavigation(e, "/dashboard")}
             >
               Dashboard
             </Link>
             <a
-              className={`relative text-white text-lg ${
-                isPracticePage ? "font-bold" : "font-base"
-              } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${
-                isPracticePage ? "after:w-full" : "hover:after:w-full"
-              }`}
+              className={`relative text-white text-lg ${isPracticePage ? "font-bold" : "font-base"
+                } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${isPracticePage ? "after:w-full" : "hover:after:w-full"
+                }`}
               href="https://practice.datasenseai.com/practice-area?subject=sql"
               onClick={(e) => handleProtectedNavigation(e, "https://practice.datasenseai.com/practice-area?subject=sql")}
             >
               Practice
             </a>
             <a
-              className={`relative text-white text-lg ${
-                isLiveQuizPage ? "font-bold" : "font-base"
-              } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${
-                isLiveQuizPage ? "after:w-full" : "hover:after:w-full"
-              }`}
+              className={`relative text-white text-lg ${isLiveQuizPage ? "font-bold" : "font-base"
+                } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${isLiveQuizPage ? "after:w-full" : "hover:after:w-full"
+                }`}
               href="https://practice.datasenseai.com/live-events"
               onClick={(e) => handleProtectedNavigation(e, "https://practice.datasenseai.com/live-events")}
             >
               Live Quiz
             </a>
             <a
-              className={`relative text-white text-lg ${
-                isCreateQuizPage ? "font-bold" : "font-base"
-              } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${
-                isCreateQuizPage ? "after:w-full" : "hover:after:w-full"
-              }`}
+              className={`relative text-white text-lg ${isCreateQuizPage ? "font-bold" : "font-base"
+                } transition duration-200 hover:text-[#03E9E9] after:content-[''] after:absolute after:w-0 after:h-[2px] after:left-0 after:-bottom-1 after:bg-[#03E9E9] after:transition-all after:duration-300 ${isCreateQuizPage ? "after:w-full" : "hover:after:w-full"
+                }`}
               href="https://assessment.datasenseai.com/"
               onClick={(e) => handleProtectedNavigation(e, "https://assessment.datasenseai.com/")}
             >
@@ -291,7 +283,15 @@ const Navbar = () => {
 
             {isLoaded && isSignedIn ? (
               <div className="flex items-center space-x-4">
-                <UserButton afterSignOutUrl="/" />
+                <UserButton afterSignOutUrl="/">
+                  <UserButton.MenuItems>
+                    <UserButton.Link
+                      label="Profile"
+                      labelIcon={<User size={14} />}
+                      href="/portfolio"
+                    />
+                  </UserButton.MenuItems>
+                </UserButton>
               </div>
             ) : (
               <SignInButton
@@ -309,9 +309,8 @@ const Navbar = () => {
 
         {/* Mobile Navigation Menu */}
         <div
-          className={`${
-            isMenuOpen ? "block" : "hidden"
-          } md:hidden bg-[#008B8B] border-t border-teal-600`}
+          className={`${isMenuOpen ? "block" : "hidden"
+            } md:hidden bg-[#008B8B] border-t border-teal-600`}
         >
           <div className="px-4 py-3 space-y-3">
             <div className="flex flex-col items-center space-y-3">
@@ -391,7 +390,15 @@ const Navbar = () => {
 
               {isLoaded && isSignedIn ? (
                 <>
-                  <UserButton afterSignOutUrl="/" />
+                  <UserButton afterSignOutUrl="/">
+                    <UserButton.MenuItems>
+                      <UserButton.Link
+                        label="Profile"
+                        labelIcon={<User size={14} />}
+                        href="/portfolio"
+                      />
+                    </UserButton.MenuItems>
+                  </UserButton>
                 </>
               ) : (
                 <SignInButton

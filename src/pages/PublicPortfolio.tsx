@@ -260,29 +260,6 @@ const PublicPortfolio = () => {
                 </div>
               ) : (
                 <>
-                  <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900 dark:text-white">
-                        <Medal className="h-5 w-5 text-cyan-600 dark:text-cyan-500" />
-                        Credentials
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-                      {normalizedCredentials.length > 0 ? (
-                        <ul className="space-y-2 text-gray-700 dark:text-gray-200">
-                          {normalizedCredentials.map((credential) => (
-                            <li key={credential} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-600">
-                              {credential}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-[#2A2F36] dark:text-gray-300">
-                          No credentials shared yet.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
                   {/* Skills Dashboard Card */}
                   <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
                     <CardHeader>
@@ -339,6 +316,29 @@ const PublicPortfolio = () => {
                           </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900 dark:text-white">
+                        <Medal className="h-5 w-5 text-cyan-600 dark:text-cyan-500" />
+                        Credentials
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-300">
+                      {normalizedCredentials.length > 0 ? (
+                        <ul className="space-y-2 text-gray-700 dark:text-gray-200">
+                          {normalizedCredentials.map((credential) => (
+                            <li key={credential} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-600">
+                              {credential}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-[#2A2F36] dark:text-gray-300">
+                          No credentials shared yet.
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   <Card className="rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#32363C] shadow-lg neo-glass-dark">
@@ -403,8 +403,8 @@ const PublicPortfolio = () => {
                           <h4 className="text-base font-semibold text-gray-900 dark:text-white">{task.title}</h4>
                           <Badge
                             className={`rounded-lg px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${task.completed
-                                ? "border-cyan-600/40 bg-cyan-600/10 text-cyan-600 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-300"
-                                : "border-gray-300 bg-transparent text-gray-600 dark:border-gray-600 dark:text-gray-300"
+                              ? "border-cyan-600/40 bg-cyan-600/10 text-cyan-600 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-300"
+                              : "border-gray-300 bg-transparent text-gray-600 dark:border-gray-600 dark:text-gray-300"
                               }`}
                           >
                             {task.completed ? "Complete" : "Pending"}
