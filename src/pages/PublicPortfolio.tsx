@@ -62,8 +62,8 @@ const projectIdeas = [
   { title: "Python Forecasting Toolkit", description: "Notebook that predicts monthly sales with ARIMA and Prophet." },
 ];
 
-// const API_BASE_URL = "https://server.datasenseai.com";
-const API_BASE_URL = "http://localhost:4000";
+const API_BASE_URL = "https://server.datasenseai.com";
+// const API_BASE_URL = "http://localhost:4000";
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 
